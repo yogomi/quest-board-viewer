@@ -1,0 +1,36 @@
+{
+  "name": "quest-board-viewer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.tsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "NODE_OPTIONS='--experimental-require-module' webpack --watch --config webpack.config.js",
+    "serve": "NODE_OPTIONS='--experimental-require-module' browser-sync start --config bs-config.js",
+    "build": "NODE_OPTIONS='--experimental-require-module' webpack --config webpack.config.js"
+  },
+  "author": "Makoto Yano",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "@types/react-router-dom": "^5.3.3",
+    "browser-sync": "^3.0.3",
+    "ts-loader": "^9.5.2",
+    "tsconfig-paths-webpack-plugin": "^4.2.0",
+    "typescript": "^5.8.2",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.4.8",
+    "@mui/material": "^6.4.8",
+    "colortranslator": "^4.1.0",
+    "react": "^19.0.0",
+    "react-cookie": "^8.0.1",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.4.0"
+  }
+}

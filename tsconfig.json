@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "sourceMap": true,
+    "target": "esnext",
+    "module": "esnext",
+    "jsx": "react-jsx",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "src",
+    "lib": [
+      "ES2023",
+      "DOM"
+    ]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}
