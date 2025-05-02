@@ -4,6 +4,8 @@ import {
   CircularProgress,
 } from '@mui/material';
 
+import UserSummary from 'pages/users/UserSummary'
+
 export default function Main() {
   const [cookies, setCookie] = useCookies([
                                   'selectedZaoCloudUnitName',
@@ -11,6 +13,8 @@ export default function Main() {
                                 ]);
 
   return (
-    <CircularProgress />
+    <React.Fragment>
+      <UserSummary />
+    </React.Fragment>
   );
 }

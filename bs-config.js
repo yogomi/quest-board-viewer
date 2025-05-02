@@ -16,7 +16,7 @@ module.exports = {
     "ui": {
         "port": 3001
     },
-    "files": "./public/*",
+    "files": "./public/**",
     "watchEvents": [
         "change"
     ],
@@ -27,8 +27,8 @@ module.exports = {
         "ignoreInitial": true
     },
     "server": false,
-    "proxy": "localhost:3000",
-    "port": 3000,
+    "proxy": "localhost:3005",
+    "port": 3005,
     "middleware": false,
     "serveStatic": [],
     "ghostMode": {
