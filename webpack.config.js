@@ -19,6 +19,9 @@ export default {
   module: {
     rules: [
       {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+      }, {
         // 拡張子 .ts もしくは .tsx の場合
         test: /\.(ts|tsx)?$/,
         // TypeScript をコンパイルする

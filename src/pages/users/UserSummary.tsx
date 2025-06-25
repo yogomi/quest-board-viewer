@@ -1,4 +1,5 @@
 import React, {useState, useEffect} from 'react';
+import { Link } from 'react-router-dom';
 import {
   CircularProgress,
   Box,
@@ -48,6 +49,10 @@ function AddUserDialog() {
   return (
     <React.Fragment>
       <Button variant="contained" onClick={() => handleClickOpen()}>ユーザーを追加</Button>
+      <Button
+        variant="contained"
+        component={Link}
+        to="/quest-board/bulk-add-users">ユーザー一括追加</Button>
       <Dialog
         open={open}
         onClose={handleClose}
@@ -149,9 +154,7 @@ export default function UserSummary() {
     const getUserList = async (): Promise<{totalCount: number, users: UserData[]}> => {
       const res = await fetch(`/quest-board/api/v1/users?from=${from}&count=${count}`,
         {method: 'GET'});
-      console.log(res);
       const response = await res.json();
-      console.log(response)
       const users = response.data.users as UserData[];
       // const users = data.map((m): UserData => {
       //   return {

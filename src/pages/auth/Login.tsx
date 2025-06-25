@@ -13,11 +13,19 @@ import {
   ButtonGroup,
 } from '@mui/material';
 
+const containerStyle = css`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+`;
+
 const loginFormStyle = css`
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 400px;
 `;
 
 export default function Login() {
@@ -59,6 +67,7 @@ export default function Login() {
     })
       .then(res => res.json())
       .then(response => {
+        console.log(response);
         if (!response.hasOwnProperty('csrfToken')) {
           throw 'Cannot get csrf token.'
         }
@@ -86,7 +95,7 @@ export default function Login() {
     return <CircularProgress />;
   } else {
     return (
-      <Container>
+      <Container css={containerStyle}>
         <Box component="form" css={loginFormStyle} onSubmit={login} >
           <TextField label="ユーザーID" name="userId" variant="outlined" required />
           <TextField label="パスワード" name="password" variant="outlined" required />
