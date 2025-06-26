@@ -12,7 +12,7 @@ import {
 import { CookiesProvider } from "react-cookie";
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import Main from './Main';
-import BulkAddUsers from './pages/system/BulkAddUsers';
+import BulkAddUsers from './pages/users/BulkAddUsers';
 import Login from 'pages/auth/Login';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
@@ -29,7 +29,7 @@ root.render(
         <Routes>
           <Route path='/quest-board/auth/login' element={<Login />} />
           <Route path='/quest-board/users' element={<Main />} />
-          <Route path='/quest-board/bulk-add-users' element={<BulkAddUsers />} />
+          <Route path='/quest-board/user/bulk-add-users' element={<BulkAddUsers />} />
           <Route path='/quest-board/' element={<Main />} />
         </Routes>
       </BrowserRouter>

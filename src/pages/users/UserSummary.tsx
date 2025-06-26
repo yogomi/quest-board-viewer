@@ -52,7 +52,7 @@ function AddUserDialog() {
       <Button
         variant="contained"
         component={Link}
-        to="/quest-board/bulk-add-users">ユーザー一括追加</Button>
+        to="/quest-board/user/bulk-add-users">ユーザー一括追加</Button>
       <Dialog
         open={open}
         onClose={handleClose}

@@ -49,7 +49,7 @@ export default function BulkAddUsers() {
     formData.append('file', file);
 
     try {
-      const res = await fetch(`/quest-board/api/v1/system/bulk-add-users`, {
+      const res = await fetch(`/quest-board/api/v1/user/bulk-add-users`, {
         method: 'POST',
         body: formData,
       });
