@@ -17,6 +17,7 @@ import {
   DialogContentText,
   DialogActions,
   TextField,
+  Checkbox,
 } from "@mui/material";
 import { useCookies } from 'react-cookie';
 
@@ -46,9 +47,33 @@ function AddUserDialog() {
     setOpen(false);
   }
 
+  const handleDownloadUsers = async () => {
+    const res = await fetch(`/quest-board/api/v1/user/download-users-data`,
+      {method: 'GET'});
+    if (!res.ok) {
+      console.error('CSVダウンロード失敗');
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'users.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  }
+
   return (
     <React.Fragment>
       <Button variant="contained" onClick={() => handleClickOpen()}>ユーザーを追加</Button>
+      <Button
+        variant="contained"
+        onClick={() => handleDownloadUsers()}>ユーザー一括ダウンロード</Button>
       <Button
         variant="contained"
         component={Link}
@@ -124,18 +149,29 @@ function AddUserDialog() {
   );
 }
 
-function UserTableBody({userSummary}: {userSummary: UserData[]}) {
+function UserTableBody({
+  userSummary,
+  selectedUserIds,
+  onToggle
+}: {
+  userSummary: UserData[],
+  selectedUserIds: Set<string>,
+  onToggle: (id: string) => void,
+}) {
   return (
-    <TableBody>{
-      userSummary.map((user: UserData) => {
-        return <UserRow
-                  key={user.id}
-                  user={user}
-                />;
-      })
-    }</TableBody>
+    <TableBody>
+      {userSummary.map(user => (
+        <UserRow
+          key={user.id}
+          user={user}
+          selected={selectedUserIds.has(user.id)}
+          onToggle={onToggle}
+        />
+      ))}
+    </TableBody>
   );
 }
+
 
 export default function UserSummary() {
   const [cookies, setCookie] = useCookies([
@@ -148,6 +184,47 @@ export default function UserSummary() {
                 useState<number>(cookies.userSummary_rowsPerPage ?? 25);
   const [page, setPage] = useState<number>(cookies.userSummary_page ?? 0);
   const [hasData, setHasData] = useState<boolean>(false);
+
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+
+  const toggleUserSelection = (id: string) => {
+    setSelectedUserIds(prev => {
+      const newSet = new Set(prev);
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+      return newSet;
+    });
+  };
+
+  const clearSelection = () => setSelectedUserIds(new Set());
+
+  const handleBulkAction = async (action: 'enable' | 'disable' | 'delete') => {
+    const ids = Array.from(selectedUserIds);
+    if (ids.length === 0) return;
+
+    let method = 'PUT';
+    let endpoint = '';
+    if (action === 'delete') {
+      method = 'DELETE';
+      endpoint = '/quest-board/api/v1/users';
+    } else if (action === 'enable') {
+      endpoint = '/quest-board/api/v1/user/bulk-enable-users';
+    } else {
+      endpoint = '/quest-board/api/v1/user/bulk-disable-users';
+    }
+
+    const res = await fetch(endpoint, {
+      method,
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ ids }),
+    });
+
+    if (res.ok) {
+      clearSelection();
+      loadUsers(rowsPerPage, page * rowsPerPage);
+    } else {
+      console.error(`${action} failed`);
+    }
+  };
 
   const loadUsers = (count: number, from: number) => {
 
@@ -204,15 +281,38 @@ export default function UserSummary() {
       <React.Fragment>
         <Button variant="contained" onClick={() =>
                                   loadUsers(rowsPerPage, page * rowsPerPage)}>更新</Button>
+        <Box sx={{ marginBottom: 1 }}>
+          <Button variant="outlined" color="error" onClick={() => handleBulkAction('delete')}>一括削除</Button>
+          <Button variant="outlined" onClick={() => handleBulkAction('enable')}>一括有効化</Button>
+          <Button variant="outlined" onClick={() => handleBulkAction('disable')}>一括無効化</Button>
+        </Box>
         <AddUserDialog />
         <Box sx={{ margin: 1 }}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>ユーザーID</TableCell>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    indeterminate={
+                      selectedUserIds.size > 0 && selectedUserIds.size < userSummary.length
+                    }
+                    checked={
+                      userSummary.length > 0 && selectedUserIds.size === userSummary.length
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedUserIds(new Set(userSummary.map(u => u.id)));
+                      } else {
+                        clearSelection();
+                      }
+                    }}
+                  />
+                </TableCell>
+                <TableCell>選択</TableCell>
                 <TableCell>ログインID</TableCell>
                 <TableCell>ニックネーム</TableCell>
                 <TableCell>ランク</TableCell>
+                <TableCell>有効</TableCell>
                 <TableCell>ギルドスタッフ</TableCell>
                 <TableCell>プライベート情報登録</TableCell>
                 <TableCell>作成日時</TableCell>
@@ -220,6 +320,8 @@ export default function UserSummary() {
             </TableHead>
             <UserTableBody
               userSummary={userSummary}
+              selectedUserIds={selectedUserIds}
+              onToggle={toggleUserSelection}
             />
           </Table>
           <TablePagination
@@ -237,13 +339,21 @@ export default function UserSummary() {
   }
 }
 
-function UserRow({user}: {user: UserData}) {
+function UserRow({ user, selected, onToggle }: {
+  user: UserData,
+  selected: boolean,
+  onToggle: (id: string) => void,
+}) {
   return (
     <TableRow>
+      <TableCell padding="checkbox">
+        <Checkbox checked={selected} onChange={() => onToggle(user.id)} />
+      </TableCell>
       <TableCell>{user.id}</TableCell>
       <TableCell>{user.loginId}</TableCell>
       <TableCell>{user.nickname}</TableCell>
       <TableCell>{user.rank}</TableCell>
+      <TableCell>{user.enabled.toString()}</TableCell>
       <TableCell>{user.guildStaff.toString()}</TableCell>
       <TableCell>{user.privateInformationRegistered.toString()}</TableCell>
       <TableCell>{user.createdAt.toString()}</TableCell>
