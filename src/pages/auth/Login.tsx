@@ -44,7 +44,7 @@ export default function Login() {
     const authData = {
       loginId: formJson.userId,
       passwordDigest: formJson.password,
-      callbackUrl: '/quest-board/users',
+      callbackUrl: '/quest-board/user/summary',
       csrfToken: csrfToken,
     }
 

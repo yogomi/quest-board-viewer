@@ -11,8 +11,10 @@ import {
 } from 'themes/guild/';
 import { CookiesProvider } from "react-cookie";
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
-import Main from './Main';
-import BulkAddUsers from './pages/users/BulkAddUsers';
+import TopRightMenu from 'components/TopRightMenu';
+import UserSummary from 'pages/users/UserSummary'
+import PartyList from 'pages/parties/PartyList'
+import BulkAddUsers from 'pages/users/BulkAddUsers';
 import Login from 'pages/auth/Login';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
@@ -26,11 +28,12 @@ root.render(
     <CssBaseline />
     <CookiesProvider>
       <BrowserRouter>
+        <TopRightMenu />
         <Routes>
           <Route path='/quest-board/auth/login' element={<Login />} />
-          <Route path='/quest-board/users' element={<Main />} />
+          <Route path='/quest-board/user/summary' element={<UserSummary />} />
           <Route path='/quest-board/user/bulk-add-users' element={<BulkAddUsers />} />
-          <Route path='/quest-board/' element={<Main />} />
+          <Route path='/quest-board/party/list' element={<PartyList />} />
         </Routes>
       </BrowserRouter>
     </CookiesProvider>
