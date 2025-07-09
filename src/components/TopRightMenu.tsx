@@ -28,6 +28,7 @@ export default function TopRightMenu() {
         aria-label="menu"
         aria-controls="nav-menu"
         aria-haspopup="true"
+        color="primary"
         onClick={handleClick}
       >
         {open ? <CloseIcon /> : <MenuIcon />}

@@ -23,7 +23,7 @@ import { useCookies } from 'react-cookie';
 type PartyData = {
   id: string,
   partyName: string,
-  partyLeaderId: string,
+  leaderId: string,
   maxNumberOfMembers: number,
   createdAt: Date,
   updatedAt: Date,
@@ -212,7 +212,7 @@ function PartyRow({ party }: {
     <TableRow>
       <TableCell>{party.id}</TableCell>
       <TableCell>{party.partyName}</TableCell>
-      <TableCell>{party.partyLeaderId}</TableCell>
+      <TableCell>{party.leaderId}</TableCell>
       <TableCell>{party.maxNumberOfMembers}</TableCell>
       <TableCell>{party.createdAt.toString()}</TableCell>
     </TableRow>
