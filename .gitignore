@@ -1,2 +1,10 @@
 node_modules/
-public/main.bundle.js
+public/static/
+*.log
+dist/
+build/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
