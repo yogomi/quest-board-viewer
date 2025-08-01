@@ -210,7 +210,11 @@ function PartyRow({ party }: {
 }) {
   return (
     <TableRow>
-      <TableCell>{party.id}</TableCell>
+      <TableCell>
+        <Link to={`/quest-board/parties/${party.id}`} style={{ textDecoration: 'none', color: '#1976d2' }}>
+          {party.id}
+        </Link>
+      </TableCell>
       <TableCell>{party.partyName}</TableCell>
       <TableCell>{party.leaderId}</TableCell>
       <TableCell>{party.maxNumberOfMembers}</TableCell>

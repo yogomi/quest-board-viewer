@@ -22,6 +22,27 @@ export default function TopRightMenu() {
     if (path) navigate(path);
   };
 
+  const handleLogout = async () => {
+    console.log('logout');
+    try {
+      const csrfRes = await fetch(`/quest-board/api/v1/auth/csrf`, {
+          method: 'GET',
+      });
+      const csrfResJson = await csrfRes.json();
+      const res = await fetch('/quest-board/api/v1/auth/signout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(csrfResJson),
+      });
+      window.location.href = '/quest-board/auth/login';
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   return (
     <div style={{ position: 'absolute', top: 16, right: 16 }}>
       <IconButton
@@ -43,6 +64,7 @@ export default function TopRightMenu() {
         <MenuItem onClick={() => handleClose('/quest-board/quest/list')}>クエスト一覧</MenuItem>
         <MenuItem onClick={() => handleClose('/quest-board/party/list')}>パーティー一覧</MenuItem>
         <MenuItem onClick={() => handleClose('/quest-board/admin')}>システム管理</MenuItem>
+        <MenuItem onClick={() => handleLogout()}>ログアウト</MenuItem>
       </Menu>
     </div>
   );

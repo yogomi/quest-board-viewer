@@ -6,14 +6,13 @@ import { CssBaseline } from '@mui/material';
 import {
   steppenwolfTheme,
 } from 'themes/steppenwolf/';
-import {
-  guildTheme,
-} from 'themes/guild/';
 import { CookiesProvider } from "react-cookie";
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { UserProvider } from './contexts/UserContext';
 import TopRightMenu from 'components/TopRightMenu';
 import UserSummary from 'pages/users/UserSummary'
 import PartyList from 'pages/parties/PartyList'
+import PartyDetail from 'pages/parties/PartyDetail'
 import BulkAddUsers from 'pages/users/BulkAddUsers';
 import Login from 'pages/auth/Login';
 
@@ -24,18 +23,23 @@ function NotFound() {
 }
 
 root.render(
-  <ThemeProvider theme={steppenwolfTheme}>
-    <CssBaseline />
-    <CookiesProvider>
-      <BrowserRouter>
-        <TopRightMenu />
-        <Routes>
-          <Route path='/quest-board/auth/login' element={<Login />} />
-          <Route path='/quest-board/user/summary' element={<UserSummary />} />
-          <Route path='/quest-board/user/bulk-add-users' element={<BulkAddUsers />} />
-          <Route path='/quest-board/party/list' element={<PartyList />} />
-        </Routes>
-      </BrowserRouter>
-    </CookiesProvider>
-  </ThemeProvider>
+  <React.StrictMode>
+    <UserProvider>
+      <ThemeProvider theme={steppenwolfTheme}>
+        <CssBaseline />
+        <CookiesProvider>
+          <BrowserRouter>
+            <TopRightMenu />
+            <Routes>
+              <Route path='/quest-board/auth/login' element={<Login />} />
+              <Route path='/quest-board/user/summary' element={<UserSummary />} />
+              <Route path='/quest-board/user/bulk-add-users' element={<BulkAddUsers />} />
+              <Route path='/quest-board/party/list' element={<PartyList />} />
+              <Route path='/quest-board/parties/:id' element={<PartyDetail />} />
+            </Routes>
+          </BrowserRouter>
+        </CookiesProvider>
+      </ThemeProvider>
+    </UserProvider>
+  </React.StrictMode>
 );

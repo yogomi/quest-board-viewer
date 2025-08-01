@@ -40,7 +40,6 @@ export default function Login() {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const formJson = Object.fromEntries((formData as any).entries());
-    console.log(formJson)
     const authData = {
       loginId: formJson.userId,
       passwordDigest: formJson.password,
@@ -56,7 +55,7 @@ export default function Login() {
         body: JSON.stringify(authData),
     })
       .then(res => {
-        console.log(res.url)
+        console.log(res)
         window.location.href = res.url;
       });
   }
@@ -77,20 +76,6 @@ export default function Login() {
 
   useEffect(getCsrfToken, []);
 
-  const logout = async () => {
-    console.log('logout');
-    await fetch('/quest-board/api/v1/auth/signout', {
-      method: 'POST',
-      credentials: 'include', // ★ これが重要
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ csrfToken }),
-    });
-    // await fetch('/quest-board/api/v1/auth/signout?callbackUrl=/quest-board/users', { method: 'GET' });
-    // window.location.href = '/quest-board/auth/login';
-  }
-
   if (csrfToken === '') {
     return <CircularProgress />;
   } else {
@@ -102,7 +87,6 @@ export default function Login() {
           <ButtonGroup>
             <Button type="submit">ログイン</Button>
             <Button type="submit">新規登録</Button>
-            <Button onClick={logout}>ログアウト</Button>
           </ButtonGroup>
         </Box>
       </Container>
