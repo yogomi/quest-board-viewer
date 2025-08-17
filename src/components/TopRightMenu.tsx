@@ -63,6 +63,7 @@ export default function TopRightMenu() {
         <MenuItem onClick={() => handleClose('/quest-board/user/summary')}>ユーザー一覧</MenuItem>
         <MenuItem onClick={() => handleClose('/quest-board/quest/list')}>クエスト一覧</MenuItem>
         <MenuItem onClick={() => handleClose('/quest-board/party/list')}>パーティー一覧</MenuItem>
+        <MenuItem onClick={() => handleClose('/quest-board/announcement/list')}>アナウンス一覧</MenuItem>
         <MenuItem onClick={() => handleClose('/quest-board/admin')}>システム管理</MenuItem>
         <MenuItem onClick={() => handleLogout()}>ログアウト</MenuItem>
       </Menu>

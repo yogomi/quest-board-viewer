@@ -5,6 +5,9 @@ type User = {
   name: string;
   email?: string;
   image?: string;
+  guildStaff?: boolean;
+  systemAdministrator?: boolean;
+  enabled?: boolean;
 } | null;
 
 const UserContext = createContext<{

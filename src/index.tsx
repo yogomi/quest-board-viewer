@@ -13,6 +13,7 @@ import TopRightMenu from 'components/TopRightMenu';
 import UserSummary from 'pages/users/UserSummary'
 import PartyList from 'pages/parties/PartyList'
 import PartyDetail from 'pages/parties/PartyDetail'
+import AnnouncementList from 'pages/announcements/announcementList'
 import BulkAddUsers from 'pages/users/BulkAddUsers';
 import Login from 'pages/auth/Login';
 
@@ -35,6 +36,7 @@ root.render(
               <Route path='/quest-board/user/summary' element={<UserSummary />} />
               <Route path='/quest-board/user/bulk-add-users' element={<BulkAddUsers />} />
               <Route path='/quest-board/party/list' element={<PartyList />} />
+              <Route path='/quest-board/announcement/list' element={<AnnouncementList />} />
               <Route path='/quest-board/parties/:id' element={<PartyDetail />} />
             </Routes>
           </BrowserRouter>

@@ -21,9 +21,6 @@ type PartyDetailData = {
   pendingMembers: UserInfo[];
 };
 
-// 仮のログインユーザーID（本来はログイン情報から取得すべき）
-const CURRENT_USER_ID = 'your-current-user-id';
-
 export default function PartyDetail() {
   const { id } = useParams<{ id: string }>();
   const [party, setParty] = useState<PartyDetailData | null>(null);
@@ -53,8 +50,52 @@ export default function PartyDetail() {
   const handleJoinRequest = () => {
     // 参加申請APIを呼ぶ想定
     fetch(`/quest-board/api/v1/parties/${id}/join-request`, {
+      method: 'PUT',
+    }).then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          location.reload();
+        } else {
+          alert('参加申請の送信に失敗しました。');
+        }
+      })
+      .catch(() => alert('参加申請の送信に失敗しました。'))
+      .then(() => location.reload());
+  };
+
+
+  const handleApprove = (userId: string) => {
+    fetch(`/quest-board/api/v1/parties/${id}/join-request/approve`, {
       method: 'POST',
-    }).then(() => location.reload());
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          location.reload();
+        } else {
+          alert('許可に失敗しました。');
+        }
+      })
+      .catch(() => alert('許可に失敗しました。'));
+  };
+
+  const handleReject = (userId: string) => {
+    fetch(`/quest-board/api/v1/parties/${id}/join-request/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          location.reload();
+        } else {
+          alert('却下に失敗しました。');
+        }
+      })
+      .catch(() => alert('却下に失敗しました。'));
   };
 
   const handleLeaveParty = () => {
@@ -69,7 +110,7 @@ export default function PartyDetail() {
       method: 'DELETE',
     }).then(() => {
       alert('パーティーを解散しました。');
-      window.location.href = '/quest-board';
+      window.location.href = '/quest-board/party/list';
     });
   };
 
@@ -97,7 +138,31 @@ export default function PartyDetail() {
       <h3>参加申請中</h3>
       <ul>
         {party.pendingMembers.map(m => (
-          <li key={m.id}>{m.loginId} ({m.id})</li>
+          <li key={m.id}>
+            {m.loginId} ({m.id})
+            {isLeader && (
+              <>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => handleApprove(m.id)}
+                >
+                  許可
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                  style={{ marginLeft: 4 }}
+                  onClick={() => handleReject(m.id)}
+                >
+                  却下
+                </Button>
+              </>
+            )}
+          </li>
         ))}
       </ul>
 
