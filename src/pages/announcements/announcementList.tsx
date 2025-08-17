@@ -23,7 +23,9 @@ import {
   Checkbox,
   Typography,
   Alert,
+  Link,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from 'hooks/useUser';
 
 type AnnouncementCreator = {
@@ -224,6 +226,7 @@ function AddAnnouncementDialog({
 
 export default function AnnouncementList() {
   const { user } = useUser();
+  const navigate = useNavigate();
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
@@ -309,8 +312,22 @@ export default function AnnouncementList() {
                 const expired = a.expiresAt ? new Date(a.expiresAt) < new Date() : false;
                 return (
                   <TableRow key={a.id} hover>
-                    <TableCell>
-                      <strong>{a.title}</strong>
+                    <TableCell
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => navigate(`/quest-board/announcement/${a.id}`)}
+                    >
+                      <Link
+                        component='button'
+                        underline='hover'
+                        color='inherit'
+                        sx={{ fontWeight: 'bold' }}
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          navigate(`/quest-board/announcement/${a.id}`);
+                        }}
+                      >
+                        {a.title}
+                      </Link>
                       {expired && <span style={{ color: '#f44336', marginLeft: 4 }}>(期限切れ)</span>}
                     </TableCell>
                     <TableCell>

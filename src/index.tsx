@@ -14,6 +14,7 @@ import UserSummary from 'pages/users/UserSummary'
 import PartyList from 'pages/parties/PartyList'
 import PartyDetail from 'pages/parties/PartyDetail'
 import AnnouncementList from 'pages/announcements/announcementList'
+import AnnouncementDetail from 'pages/announcements/AnnouncementDetail';
 import BulkAddUsers from 'pages/users/BulkAddUsers';
 import Login from 'pages/auth/Login';
 
@@ -37,7 +38,9 @@ root.render(
               <Route path='/quest-board/user/bulk-add-users' element={<BulkAddUsers />} />
               <Route path='/quest-board/party/list' element={<PartyList />} />
               <Route path='/quest-board/announcement/list' element={<AnnouncementList />} />
+              <Route path='/quest-board/announcement/:id' element={<AnnouncementDetail />} />
               <Route path='/quest-board/parties/:id' element={<PartyDetail />} />
+              <Route path='*' element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </CookiesProvider>
