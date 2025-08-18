@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { useUser } from 'hooks/useUser';
 import { useNavigate } from 'react-router-dom';
-import AnnouncementUpsertDialog, { AnnouncementFormValues } from './components/AnnouncementUpsertDialog';
+import AnnouncementUpsertDialog, { AnnouncementFormValues } from 'components/announcements/AnnouncementUpsertDialog';
 
 export type AnnouncementItem = {
   id: string;
