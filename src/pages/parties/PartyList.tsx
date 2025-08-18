@@ -63,8 +63,17 @@ function AddPartyDialog() {
               })
                 .then(res => res.json())
                 .then(response => {
-                  console.log(response)
-                  handleClose();
+                  console.log(response);
+                  if (response.success) {
+                    handleClose();
+                    // Reload the page to show the new party
+                    window.location.reload();
+                  } else {
+                    alert(response.message || 'パーティーの作成に失敗しました。');
+                  }
+                })
+                .catch(() => {
+                  alert('パーティーの作成に失敗しました。');
                 })
             }
           }
@@ -137,6 +146,11 @@ export default function PartyList() {
       const res = await fetch(`/quest-board/api/v1/parties?from=${from}&count=${count}`,
         {method: 'GET'});
       const response = await res.json();
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to load parties');
+      }
+      
       const parties = response.data.parties as PartyData[];
       const totalCount = response.data.totalCount as number;
       return {totalCount, parties};
@@ -149,6 +163,11 @@ export default function PartyList() {
         setPartyList(parties);
         setTotalCount(receivedData.totalCount);
         setHasData(true);
+      })
+      .catch(error => {
+        console.error('Failed to load parties:', error);
+        alert(error.message || 'パーティー一覧の取得に失敗しました。');
+        setHasData(true); // Set to true to show the UI even on error
       });
   }
 

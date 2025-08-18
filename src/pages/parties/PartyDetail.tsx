@@ -24,7 +24,7 @@ type PartyDetailData = {
 export default function PartyDetail() {
   const { id } = useParams<{ id: string }>();
   const [party, setParty] = useState<PartyDetailData | null>(null);
-  const [error, setError] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useUser();
   const userId = user?.id;
 
@@ -36,10 +36,10 @@ export default function PartyDetail() {
           if (json.success) {
             setParty(json.data);
           } else {
-            setError(true);
+            setError(json.message || '取得に失敗しました。');
           }
         })
-        .catch(() => setError(true));
+        .catch(() => setError('取得に失敗しました。'));
     }
   }, [id]);
 
@@ -56,11 +56,10 @@ export default function PartyDetail() {
         if (json.success) {
           location.reload();
         } else {
-          alert('参加申請の送信に失敗しました。');
+          alert(json.message || '参加申請の送信に失敗しました。');
         }
       })
-      .catch(() => alert('参加申請の送信に失敗しました。'))
-      .then(() => location.reload());
+      .catch(() => alert('参加申請の送信に失敗しました。'));
   };
 
 
@@ -75,7 +74,7 @@ export default function PartyDetail() {
         if (json.success) {
           location.reload();
         } else {
-          alert('許可に失敗しました。');
+          alert(json.message || '許可に失敗しました。');
         }
       })
       .catch(() => alert('許可に失敗しました。'));
@@ -92,7 +91,7 @@ export default function PartyDetail() {
         if (json.success) {
           location.reload();
         } else {
-          alert('却下に失敗しました。');
+          alert(json.message || '却下に失敗しました。');
         }
       })
       .catch(() => alert('却下に失敗しました。'));
@@ -101,20 +100,36 @@ export default function PartyDetail() {
   const handleLeaveParty = () => {
     fetch(`/quest-board/api/v1/parties/${id}/leave`, {
       method: 'POST',
-    }).then(() => location.reload());
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          location.reload();
+        } else {
+          alert(json.message || 'パーティーからの離脱に失敗しました。');
+        }
+      })
+      .catch(() => alert('パーティーからの離脱に失敗しました。'));
   };
 
   const handleDisband = () => {
     if (!confirm('本当にこのパーティーを解散しますか？')) return;
     fetch(`/quest-board/api/v1/parties/${id}`, {
       method: 'DELETE',
-    }).then(() => {
-      alert('パーティーを解散しました。');
-      window.location.href = '/quest-board/party/list';
-    });
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          alert('パーティーを解散しました。');
+          window.location.href = '/quest-board/party/list';
+        } else {
+          alert(json.message || 'パーティーの解散に失敗しました。');
+        }
+      })
+      .catch(() => alert('パーティーの解散に失敗しました。'));
   };
 
-  if (error) return <p>取得に失敗しました。</p>;
+  if (error) return <p>{error}</p>;
   if (!party) return <p>読み込み中...</p>;
 
   return (

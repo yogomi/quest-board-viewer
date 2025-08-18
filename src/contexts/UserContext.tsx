@@ -30,7 +30,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         });
         if (!res.ok) return;
         const json = await res.json();
-        setUser(json.user);
+        
+        // Handle both old and new response formats
+        if (json.success !== undefined) {
+          // New unified format
+          if (json.success && json.data && json.data.user) {
+            setUser(json.data.user);
+          }
+        } else if (json.user) {
+          // Old format (backwards compatibility)
+          setUser(json.user);
+        }
       } catch (err) {
         console.error('セッション取得失敗:', err);
       }
