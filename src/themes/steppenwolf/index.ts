@@ -45,6 +45,15 @@ export const steppenwolfTheme = createTheme(coloredTheme, {
         },
       },
     },
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          // 透過を抑える（既定 ~0.5 → 0.85）
+          backgroundColor: 'rgba(0,0,0,0.60)',
+          backdropFilter: 'blur(2px)',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {

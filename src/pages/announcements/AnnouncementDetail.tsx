@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from 'hooks/useUser';
+import AnnouncementUpsertDialog, { AnnouncementFormValues } from './components/AnnouncementUpsertDialog';
 
 type AnnouncementDetailData = {
   id: string;
@@ -47,18 +48,22 @@ export default function AnnouncementDetail() {
   const navigate = useNavigate();
   const { user } = useUser();
   const isStaff = !!user?.guildStaff || user?.systemAdministrator;
+
   const [loading, setLoading] = useState(true);
   const [announcement, setAnnouncement] = useState<AnnouncementDetailData | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [editOpen, setEditOpen] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`/quest-board/api/v1/announcements/${id}`, { method: 'GET' });
+      const res = await fetch(`/quest-board/api/v1/announcements/${id}`);
       const json: GetResponse = await res.json();
       if (json.success && json.data) {
         setAnnouncement(json.data.announcement);
@@ -97,6 +102,15 @@ export default function AnnouncementDetail() {
     }
   };
 
+  const openEdit = () => {
+    setEditOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    // 更新後再取得
+    loadDetail();
+  };
+
   if (loading) {
     return (
       <Box sx={{ p: 2 }}>
@@ -131,6 +145,15 @@ export default function AnnouncementDetail() {
     ? new Date(announcement.expiresAt) < new Date()
     : false;
 
+  const editInitialValues: AnnouncementFormValues = {
+    title: announcement.title,
+    message: announcement.message,
+    importance: announcement.importance,
+    expiresAt: announcement.expiresAt,
+    notifiedByMail: announcement.notifiedByMail,
+    notifiedByPush: announcement.notifiedByPush,
+  };
+
   return (
     <Box sx={{ p: 2, maxWidth: 900 }}>
       <Typography variant='h5' sx={{ mb: 1 }}>
@@ -159,8 +182,8 @@ export default function AnnouncementDetail() {
             size='small'
           />
         )}
-        {announcement.notifiedByMail && <Chip label='mail通知済' size='small' />}
-        {announcement.notifiedByPush && <Chip label='push通知済' size='small' />}
+        {announcement.notifiedByMail && <Chip label='mail通知フラグ' size='small' />}
+        {announcement.notifiedByPush && <Chip label='push通知フラグ' size='small' />}
       </Stack>
 
       <Typography variant='body2' sx={{ color: 'text.secondary', mb: 2 }}>
@@ -194,16 +217,26 @@ export default function AnnouncementDetail() {
           一覧へ戻る
         </Button>
         {isStaff && (
-          <Button
-            variant='contained'
-            color='error'
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            削除
-          </Button>
+          <>
+            <Button
+              variant='contained'
+              color='primary'
+              onClick={openEdit}
+            >
+              編集
+            </Button>
+            <Button
+              variant='contained'
+              color='error'
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              削除
+            </Button>
+          </>
         )}
       </Stack>
 
+      {/* 削除確認 */}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -236,6 +269,21 @@ export default function AnnouncementDetail() {
             </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 編集ダイアログ */}
+      {isStaff && (
+        <AnnouncementUpsertDialog
+          open={editOpen}
+          mode='edit'
+          announcementId={announcement.id}
+          initialValues={editInitialValues}
+          onClose={() => setEditOpen(false)}
+          onSuccess={() => {
+            setEditOpen(false);
+            loadDetail();
+          }}
+        />
+      )}
     </Box>
   );
 }

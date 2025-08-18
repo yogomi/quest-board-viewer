@@ -13,7 +13,7 @@ import TopRightMenu from 'components/TopRightMenu';
 import UserSummary from 'pages/users/UserSummary'
 import PartyList from 'pages/parties/PartyList'
 import PartyDetail from 'pages/parties/PartyDetail'
-import AnnouncementList from 'pages/announcements/announcementList'
+import AnnouncementList from 'pages/announcements/AnnouncementList'
 import AnnouncementDetail from 'pages/announcements/AnnouncementDetail';
 import BulkAddUsers from 'pages/users/BulkAddUsers';
 import Login from 'pages/auth/Login';
