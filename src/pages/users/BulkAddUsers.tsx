@@ -55,15 +55,16 @@ export default function BulkAddUsers() {
       });
       const response = await res.json();
       console.log(response);
-      if (response.success === true || response.code === 'db operation failed') {
+      if (response.success) {
         console.log('アップロード完了', res);
         navigate(-1);
       } else {
-        console.log(response.code);
+        console.error('アップロード失敗:', response.message || response.code);
+        alert(response.message || 'アップロードに失敗しました。');
       }
-      console.log(response);
     } catch (err) {
       console.error('アップロードエラー', err);
+      alert('アップロードエラーが発生しました。');
     }
   };
 

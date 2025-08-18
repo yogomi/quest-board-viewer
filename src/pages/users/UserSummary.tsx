@@ -100,9 +100,18 @@ function AddUserDialog() {
               })
                 .then(res => res.json())
                 .then(response => {
-                  console.log(response)
-                  handleClose();
+                  console.log(response);
+                  if (response.success) {
+                    handleClose();
+                    // Reload the user list to show the new user
+                    window.location.reload();
+                  } else {
+                    alert(response.message || 'ユーザーの追加に失敗しました。');
+                  }
                 })
+                .catch(() => {
+                  alert('ユーザーの追加に失敗しました。');
+                });
             }
           }
         }}
@@ -212,17 +221,24 @@ export default function UserSummary() {
       endpoint = '/quest-board/api/v1/user/bulk-disable-users';
     }
 
-    const res = await fetch(endpoint, {
-      method,
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ ids }),
-    });
+    try {
+      const res = await fetch(endpoint, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ ids }),
+      });
 
-    if (res.ok) {
-      clearSelection();
-      loadUsers(rowsPerPage, page * rowsPerPage);
-    } else {
-      console.error(`${action} failed`);
+      const json = await res.json();
+      
+      if (json.success) {
+        clearSelection();
+        loadUsers(rowsPerPage, page * rowsPerPage);
+      } else {
+        alert(json.message || `${action} failed`);
+      }
+    } catch (error) {
+      console.error(`${action} failed:`, error);
+      alert(`${action} failed`);
     }
   };
 
@@ -232,19 +248,12 @@ export default function UserSummary() {
       const res = await fetch(`/quest-board/api/v1/users?from=${from}&count=${count}`,
         {method: 'GET'});
       const response = await res.json();
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to load users');
+      }
+      
       const users = response.data.users as UserData[];
-      // const users = data.map((m): UserData => {
-      //   return {
-      //     meetingId: m.meetingId,
-      //     tenantId: m.tenantId,
-      //     roomGroupId: m.roomGroupId,
-      //     startDate: m.startDate !== null ? new Date(m.startDate) : null,
-      //     endDate: m.endDate !== null ? new Date(m.endDate) : null,
-      //     logArchiveStatus: m.logArchiveStatus,
-      //     logArchiveProgress: m.logArchiveProgress,
-      //     logArchiveFilename: m.logArchiveFilename,
-      //   };
-      // });
       const totalCount = response.data.totalCount as number;
       return {totalCount, users};
     }
@@ -256,6 +265,11 @@ export default function UserSummary() {
         setUserSummary(users);
         setTotalCount(receivedData.totalCount);
         setHasData(true);
+      })
+      .catch(error => {
+        console.error('Failed to load users:', error);
+        alert(error.message || 'ユーザーの取得に失敗しました。');
+        setHasData(true); // Set to true to show the UI even on error
       });
   }
 
