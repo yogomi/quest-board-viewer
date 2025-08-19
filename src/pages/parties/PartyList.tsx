@@ -151,7 +151,7 @@ export default function PartyList() {
         throw new Error(response.message || 'Failed to load parties');
       }
       
-      const parties = response.data.parties as PartyData[];
+      const parties = response.data.items as PartyData[];
       const totalCount = response.data.totalCount as number;
       return {totalCount, parties};
     }

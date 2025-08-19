@@ -42,7 +42,7 @@ type ListResponse = {
     from: number;
     count: number;
     total: number;
-    announcements: AnnouncementItem[];
+    items: AnnouncementItem[];
   };
 };
 
@@ -67,7 +67,7 @@ export default function AnnouncementList() {
       const res = await fetch(`/quest-board/api/v1/announcements?from=${from}&count=${count}`);
       const json: ListResponse = await res.json();
       if (json.success) {
-        setAnnouncements(json.data.announcements);
+        setAnnouncements(json.data.items);
         setTotal(json.data.total);
       } else {
         setErrorMsg(json.message || 'Failed to fetch announcements.');

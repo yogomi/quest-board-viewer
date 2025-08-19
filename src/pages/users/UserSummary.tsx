@@ -248,12 +248,12 @@ export default function UserSummary() {
       const res = await fetch(`/quest-board/api/v1/users?from=${from}&count=${count}`,
         {method: 'GET'});
       const response = await res.json();
-      
+
       if (!response.success) {
         throw new Error(response.message || 'Failed to load users');
       }
-      
-      const users = response.data.users as UserData[];
+
+      const users = response.data.items as UserData[];
       const totalCount = response.data.totalCount as number;
       return {totalCount, users};
     }
