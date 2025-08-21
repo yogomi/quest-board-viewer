@@ -128,12 +128,59 @@ const BackupSection: React.FC = () => {
   }
 
   // バックアップダウンロード
-  const handleDownload = (filename: string) => {
-    window.open(
-      `/quest-board/api/v1/system/database/backups/${encodeURIComponent(filename)}/download`,
-      "_blank"
-    )
-  }
+  const handleDownload = useCallback(async (filename: string) => {
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      const url = `/quest-board/api/v1/system/database/backups/${encodeURIComponent(filename)}/download`;
+
+      const res = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {},
+      });
+
+      const contentType = res.headers.get('Content-Type') || '';
+
+      if (!res.ok) {
+        if (contentType.includes('application/json')) {
+          const errJson = await res.json();
+          setError("バックアップのダウンロードに失敗しました: " + (errJson.message || 'Download failed'));
+          return;
+        } else {
+          const text = await res.text();
+          setError("バックアップのダウンロードに失敗しました: Download failed (non-JSON response)");
+          return;
+        }
+      }
+
+      if (!contentType.startsWith('application/sql')) {
+        const peek = await res.text();
+        setError(`バックアップのダウンロードに失敗しました: 想定外のContent-Type: ${contentType}`);
+        return;
+      }
+
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="([^"]+)"/);
+      const downloadName = match ? match[1] : filename;
+
+      const objectUrl = URL.createObjectURL(blob);
+      try {
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = downloadName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setSuccessMsg(`バックアップ「${downloadName}」をダウンロードしました。`);
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000);
+      }
+    } catch (e: any) {
+      setError("バックアップのダウンロードに失敗しました: " + e.message);
+    }
+  }, [setError, setSuccessMsg]);
 
   return (
     <Box>
