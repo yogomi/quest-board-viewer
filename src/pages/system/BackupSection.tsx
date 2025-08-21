@@ -55,7 +55,7 @@ const BackupSection: React.FC = () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch("/api/system/database/backups")
+      const res = await fetch("/quest-board/api/v1/system/database/backups")
       const json = await res.json()
       if (!json.success) throw new Error(json.message)
       setBackups(json.data.items)
@@ -71,7 +71,7 @@ const BackupSection: React.FC = () => {
     setLogLoading(true)
     setError(null)
     try {
-      const res = await fetch("/api/system/database/operationLogs?count=20")
+      const res = await fetch("/quest-board/api/v1/system/database/operation-logs?count=20")
       const json = await res.json()
       if (!json.success) throw new Error(json.message)
       setLogs(json.data.items)
@@ -113,7 +113,7 @@ const BackupSection: React.FC = () => {
     setSuccessMsg(null)
     try {
       const res = await fetch(
-        `/api/system/database/backup/${encodeURIComponent(deleteFile)}`,
+        `/quest-board/api/v1/system/database/backups/${encodeURIComponent(deleteFile)}`,
         { method: "DELETE" }
       )
       const json = await res.json()
@@ -130,7 +130,7 @@ const BackupSection: React.FC = () => {
   // バックアップダウンロード
   const handleDownload = (filename: string) => {
     window.open(
-      `/api/system/database/backup/${encodeURIComponent(filename)}/download`,
+      `/quest-board/api/v1/system/database/backups/${encodeURIComponent(filename)}/download`,
       "_blank"
     )
   }
