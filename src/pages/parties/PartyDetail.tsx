@@ -39,7 +39,7 @@ export default function PartyDetail() {
         .then(res => res.json())
         .then(json => {
           if (json.success) {
-            setParty(json.data);
+            setParty(json.data.party);
           } else {
             setError(json.message || '取得に失敗しました。');
           }
@@ -58,7 +58,7 @@ export default function PartyDetail() {
       .then(res => res.json())
       .then(json => {
         if (json.success) {
-          setParty(json.data);
+          setParty(json.data.party);
         }
       });
   };

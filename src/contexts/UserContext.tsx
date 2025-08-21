@@ -37,9 +37,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           if (json.success && json.data && json.data.user) {
             setUser(json.data.user);
           }
-        } else if (json.user) {
+        } else if (json.data.user) {
           // Old format (backwards compatibility)
-          setUser(json.user);
+          setUser(json.data.user);
         }
       } catch (err) {
         console.error('セッション取得失敗:', err);
