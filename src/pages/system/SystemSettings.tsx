@@ -9,6 +9,7 @@ import {
 } from "@mui/material"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import BackupSection from "./BackupSection"
+import DatabaseInfoSection from "./DatabaseInfoSection"
 
 const SystemSettings: React.FC = () => {
   return (
@@ -32,20 +33,18 @@ const SystemSettings: React.FC = () => {
 
       <Divider sx={{ my: 4 }} />
 
-      {/* 今後のためのセクション例
       <Accordion>
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
-          aria-controls="basicinfo-content"
-          id="basicinfo-header"
+          aria-controls="dbinfo-content"
+          id="dbinfo-header"
         >
-          <Typography variant="h6">基本情報・統計</Typography>
+          <Typography variant="h6">データベース情報</Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <Typography>ここにユーザー数やバージョン情報などを表示予定。</Typography>
+          <DatabaseInfoSection />
         </AccordionDetails>
       </Accordion>
-      */}
     </Box>
   )
 }
