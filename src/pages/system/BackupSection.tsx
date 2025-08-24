@@ -20,10 +20,14 @@ import {
   Stack,
   Tooltip,
   IconButton,
+  FormControlLabel,
+  Checkbox,
+  TablePagination,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { useCookies } from "react-cookie";
 import { api } from "utils/urlPrefix";
 
 type BackupFile = {
@@ -43,8 +47,14 @@ type OperationLog = {
 };
 
 const BackupSection: React.FC = () => {
+  const [cookies, setCookie] = useCookies([
+    "backupLogs_page",
+    "backupLogs_rowsPerPage",
+  ]);
+
   const [backups, setBackups] = useState<BackupFile[]>([]);
   const [logs, setLogs] = useState<OperationLog[]>([]);
+  const [totalLogs, setTotalLogs] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [logLoading, setLogLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -55,6 +65,13 @@ const BackupSection: React.FC = () => {
   // アップロードしてリストア用
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [dropAndRecreatePublic, setDropAndRecreatePublic] = useState(false);
+
+  // ログのページネーション（デフォルト10件表示、Cookieで保存）
+  const [rowsPerPage, setRowsPerPage] = useState<number>(
+    cookies.backupLogs_rowsPerPage ?? 10
+  );
+  const [page, setPage] = useState<number>(cookies.backupLogs_page ?? 0);
 
   // バックアップ一覧取得
   const fetchBackups = useCallback(async () => {
@@ -73,25 +90,30 @@ const BackupSection: React.FC = () => {
   }, []);
 
   // 操作履歴取得
-  const fetchLogs = useCallback(async () => {
-    setLogLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(api("/system/database/operation-logs?count=20"));
-      const json = await res.json();
-      if (!json.success) throw new Error(json.message);
-      setLogs(json.data.items);
-    } catch (e: any) {
-      setError("操作履歴の取得に失敗しました: " + e.message);
-    } finally {
-      setLogLoading(false);
-    }
-  }, []);
+  const fetchLogs = useCallback(
+    async (count: number, from: number) => {
+      setError(null);
+      try {
+        const res = await fetch(
+          api(
+            `/system/database/operation-logs?from=${from}&count=${count}`
+          )
+        );
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        setLogs(json.data.items);
+        setTotalLogs(json.data.total);
+      } catch (e: any) {
+        setError("操作履歴の取得に失敗しました: " + e.message);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     fetchBackups();
-    fetchLogs();
-  }, [fetchBackups, fetchLogs]);
+    fetchLogs(rowsPerPage, page * rowsPerPage);
+  }, [fetchBackups, fetchLogs, rowsPerPage, page]);
 
   // バックアップ作成
   const handleCreate = async () => {
@@ -106,7 +128,7 @@ const BackupSection: React.FC = () => {
       if (!json.success) throw new Error(json.message);
       setSuccessMsg("バックアップを作成しました: " + json.data?.path);
       fetchBackups();
-      fetchLogs();
+      fetchLogs(rowsPerPage, page * rowsPerPage);
     } catch (e: any) {
       setError("バックアップの作成に失敗しました: " + e.message);
     } finally {
@@ -129,7 +151,7 @@ const BackupSection: React.FC = () => {
       setSuccessMsg(`バックアップ「${deleteFile}」を削除しました。`);
       setDeleteFile(null);
       fetchBackups();
-      fetchLogs();
+      fetchLogs(rowsPerPage, page * rowsPerPage);
     } catch (e: any) {
       setError("バックアップの削除に失敗しました: " + e.message);
     }
@@ -197,7 +219,7 @@ const BackupSection: React.FC = () => {
             `バックアップ「${downloadName}」をダウンロードしました。`
           );
         } finally {
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000);
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
         }
       } catch (e: any) {
         setError("バックアップのダウンロードに失敗しました: " + e.message);
@@ -229,7 +251,7 @@ const BackupSection: React.FC = () => {
     setRestoreFile(f);
   };
 
-  // アップロードしてリストア（エラー処理を強化）
+  // アップロードしてリストア（サーバ側は常にpublicを再作成）
   const handleRestoreUpload = async () => {
     if (!restoreFile) {
       setError("リストアする .sql ファイルを選択してください。");
@@ -241,8 +263,12 @@ const BackupSection: React.FC = () => {
     try {
       const fd = new FormData();
       fd.append("file", restoreFile);
+      if (dropAndRecreatePublic) {
+        // サーバ側では無視されるが、互換のため送信可
+        fd.append("dropAndRecreatePublic", "true");
+      }
 
-      const res = await fetch(api("/system/database/backup/restore-upload"), {
+      const res = await fetch(api("/system/database/backups/restore-upload"), {
         method: "POST",
         body: fd,
       });
@@ -253,7 +279,6 @@ const BackupSection: React.FC = () => {
       if (ct.includes("application/json")) {
         json = await res.json();
       } else {
-        // ヘッダが不正でもJSONの可能性があるためbest-effortで解析
         try {
           json = await res.clone().json();
         } catch {
@@ -261,8 +286,7 @@ const BackupSection: React.FC = () => {
         }
       }
 
-      // エラー時詳細メッセージ抽出
-      if (!res.ok || (json && json.success === false) || !json) {
+      if (!res.ok || (json && json.success === false)) {
         let msg =
           (json && typeof json.message === "string" && json.message) || "";
 
@@ -281,7 +305,6 @@ const BackupSection: React.FC = () => {
               msg = "入力が不正です。";
               break;
             default:
-              // テキストレスポンスなら内容を拾う（長すぎる場合は打ち切り）
               try {
                 const txt = await res.text();
                 msg =
@@ -293,7 +316,6 @@ const BackupSection: React.FC = () => {
           }
         }
 
-        // サーバのエラーコードがあれば付記
         if (json && typeof json.code === "string" && json.code) {
           msg += ` [${json.code}]`;
         }
@@ -301,20 +323,37 @@ const BackupSection: React.FC = () => {
         throw new Error(msg);
       }
 
-      // 成功
       const okMsg =
         (json && typeof json.message === "string" && json.message) ||
         "アップロードしたSQLでリストアしました。";
       setSuccessMsg(okMsg);
 
-      // 完了後は選択解除し、操作履歴のみ更新
       setRestoreFile(null);
-      fetchLogs();
+      fetchLogs(rowsPerPage, page * rowsPerPage);
     } catch (e: any) {
       setError("リストアに失敗しました: " + (e?.message || "Restore failed."));
     } finally {
       setRestoring(false);
     }
+  };
+
+  // ページ変更
+  const onPageChange = (_: React.MouseEvent | null, newPage: number) => {
+    setPage(newPage);
+    setCookie("backupLogs_page", newPage);
+    fetchLogs(rowsPerPage, newPage * rowsPerPage);
+  };
+
+  // 1ページあたり件数変更
+  const onRowsPerPageChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const count = parseInt(event.target.value, 10);
+    setPage(0);
+    setCookie("backupLogs_page", 0);
+    setRowsPerPage(count);
+    setCookie("backupLogs_rowsPerPage", count);
+    fetchLogs(count, 0);
   };
 
   return (
@@ -373,6 +412,16 @@ const BackupSection: React.FC = () => {
             {restoring ? <CircularProgress size={20} /> : "アップロードしてリストア"}
           </Button>
         </Stack>
+        <FormControlLabel
+          sx={{ mt: 1 }}
+          control={
+            <Checkbox
+              checked={dropAndRecreatePublic}
+              onChange={(e) => setDropAndRecreatePublic(e.target.checked)}
+            />
+          }
+          label="リストア前に public スキーマを削除して再作成する（破壊的）"
+        />
         <Typography variant="caption" color="text.secondary">
           対応拡張子: .sql（最大100MB）
         </Typography>
@@ -489,6 +538,15 @@ const BackupSection: React.FC = () => {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]}
+            component="div"
+            count={totalLogs}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={onPageChange}
+            onRowsPerPageChange={onRowsPerPageChange}
+          />
         </TableContainer>
       )}
 
