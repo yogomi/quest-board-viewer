@@ -32,13 +32,6 @@ export type QuestListItem = {
 
 export type Quest = QuestListItem;
 
-export type Paging<T> = {
-  from: number;
-  count: number;
-  total: number;
-  items: T[];
-};
-
 export type QuestComment = {
   id: string;
   questId: string;

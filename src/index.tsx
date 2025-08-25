@@ -52,7 +52,7 @@ root.render(
                 <Route path='/quest-board/parties/:id' element={<PartyDetail />} />
                 <Route path='*' element={<NotFound />} />
                 <Route path="/quest-board/quest/list" element={<QuestListPage />} />
-                <Route path="/quest-board/quest/new" element={<QuestFormPage />} />
+                <Route path="/quest-board/quests/new" element={<QuestFormPage />} />
                 <Route
                   path="/quest-board/quests/:questId"
                   element={<QuestDetailPage />}

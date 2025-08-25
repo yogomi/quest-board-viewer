@@ -4,10 +4,11 @@ import { apiGet, apiPost, apiPatch, apiDelete } from 'utils/apiClient';
 import {
   Quest,
   QuestListItem,
-  Paging,
   QuestComment,
   QuestContractor,
 } from 'types/quests';
+
+import { Paging } from 'types/Paging';
 
 export const listQuestsQuery = z.object({
   from: z.coerce.number().int().nonnegative().default(0),
