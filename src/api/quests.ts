@@ -7,7 +7,7 @@ import {
   Paging,
   QuestComment,
   QuestContractor,
-} from 'types/quest';
+} from 'types/quests';
 
 export const listQuestsQuery = z.object({
   from: z.coerce.number().int().nonnegative().default(0),
