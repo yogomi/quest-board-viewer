@@ -1,47 +1,40 @@
 import React from 'react';
 import {
-  Link as RouterLink,
-  useNavigate,
-  useParams,
-} from 'react-router-dom';
-import {
+  Alert,
   Box,
-  Stack,
-  Typography,
   Button,
   Card,
-  CardContent,
   CardActions,
+  CardContent,
+  CircularProgress,
   Divider,
-  Tabs,
-  Tab,
+  IconButton,
   List,
   ListItem,
-  ListItemText,
-  IconButton,
-  Alert,
-  CircularProgress,
+  Stack,
+  Tab,
+  Tabs,
   TextField,
+  Typography,
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  getQuest,
-  deleteQuestApi,
-  listComments,
   addComment,
-  deleteCommentApi,
+  deleteQuestApi,
+  getQuest,
+  listComments,
   listContractors,
-  acceptContractor,
   rejectContractor,
 } from 'api/quests';
-import { Quest } from 'types/quests';
+import { rankToAlpha } from 'utils/questRank';
 import { QuestStatusChip } from 'components/quests/QuestStatusChip';
 
-export const QuestDetailPage: React.FC = () => {
-  const { questId = '' } = useParams();
+export default function QuestDetailPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const { questId = '' } = useParams();
+
   const [tab, setTab] = React.useState(0);
   const [newComment, setNewComment] = React.useState('');
 
@@ -73,37 +66,19 @@ export const QuestDetailPage: React.FC = () => {
   });
 
   const add = useMutation({
-    mutationFn: () =>
-      addComment(questId, {
-        commentOwnerId: quest?.questOwnerId || '',
-        comment: newComment,
-      }),
+    mutationFn: () => addComment(questId, {
+      commentOwnerId: quest?.questOwnerId || '',
+      comment: newComment.trim(),
+    }),
     onSuccess: () => {
       setNewComment('');
       qc.invalidateQueries({ queryKey: ['quest', questId, 'comments'] });
     },
   });
 
-  const removeComment = useMutation({
-    mutationFn: (commentId: string) => deleteCommentApi(questId, commentId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['quest', questId, 'comments'] });
-    },
-  });
-
-  const accept = useMutation({
-    mutationFn: (cid: string) => acceptContractor(questId, cid),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['quest', questId, 'contractors'] });
-    },
-  });
-
-  const reject = useMutation({
-    mutationFn: (cid: string) => rejectContractor(questId, cid),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['quest', questId, 'contractors'] });
-    },
-  });
+  const doDelete = () => {
+    if (confirm('Delete this quest?')) del.mutate();
+  };
 
   if (isPending) {
     return (
@@ -134,13 +109,7 @@ export const QuestDetailPage: React.FC = () => {
         >
           Edit
         </Button>
-        <Button
-          color="error"
-          variant="contained"
-          onClick={() => {
-            if (confirm('Delete this quest?')) del.mutate();
-          }}
-        >
+        <Button color="error" variant="contained" onClick={doDelete}>
           Delete
         </Button>
       </Stack>
@@ -154,7 +123,9 @@ export const QuestDetailPage: React.FC = () => {
             <Typography>{quest.description}</Typography>
             <Divider />
             <Stack direction="row" spacing={2} flexWrap="wrap">
-              <Typography variant="body2">Rank: {quest.rank}</Typography>
+              <Typography variant="body2">
+                Rank: {rankToAlpha(quest.rank)}
+              </Typography>
               <Typography variant="body2">
                 Party required: {quest.partyRequired ? 'Yes' : 'No'}
               </Typography>
@@ -167,6 +138,7 @@ export const QuestDetailPage: React.FC = () => {
             </Stack>
           </Stack>
         </CardContent>
+        <CardActions />
       </Card>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
@@ -200,58 +172,31 @@ export const QuestDetailPage: React.FC = () => {
                 {(comments?.items ?? []).map((c) => (
                   <ListItem
                     key={c.id}
-                    secondaryAction={
-                      <IconButton
-                        edge="end"
-                        onClick={() => removeComment.mutate(c.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    }
+                    secondaryAction={<IconButton edge="end" />}
                   >
-                    <ListItemText
-                      primary={c.comment}
-                      secondary={new Date(c.createdAt).toLocaleString()}
-                    />
+                    {c.comment}
                   </ListItem>
                 ))}
               </List>
             </Stack>
           </CardContent>
+          <CardActions />
         </Card>
       )}
 
       {tab === 1 && (
         <Card variant="outlined">
           <CardContent>
+            <Typography variant="subtitle1" gutterBottom>
+              Contractors
+            </Typography>
             <List dense>
               {(contractors?.items ?? []).map((x) => (
                 <ListItem
                   key={x.id}
-                  secondaryAction={
-                    <Stack direction="row" spacing={1}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => accept.mutate(x.id)}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        size="small"
-                        color="error"
-                        variant="outlined"
-                        onClick={() => reject.mutate(x.id)}
-                      >
-                        Reject
-                      </Button>
-                    </Stack>
-                  }
+                  secondaryAction={<IconButton edge="end" />}
                 >
-                  <ListItemText
-                    primary={`${x.contractorUnitType} - ${x.contractorUnitId}`}
-                    secondary={`status: ${x.status}`}
-                  />
+                  {x.contractorUnitType} - {x.contractorUnitId}
                 </ListItem>
               ))}
             </List>
@@ -261,4 +206,4 @@ export const QuestDetailPage: React.FC = () => {
       )}
     </Box>
   );
-};
+}

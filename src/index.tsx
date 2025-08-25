@@ -19,9 +19,9 @@ import AnnouncementDetail from 'pages/announcements/AnnouncementDetail';
 import SystemSettings from 'pages/system/SystemSettings';
 import BulkAddUsers from 'pages/users/BulkAddUsers';
 import Login from 'pages/auth/Login';
-import { QuestListPage } from 'pages/quests/QuestListPage';
-import { QuestDetailPage } from 'pages/quests/QuestDetailPage';
-import { QuestFormPage } from 'pages/quests/QuestFormPage';
+import QuestListPage from 'pages/quests/QuestListPage';
+import QuestDetailPage from 'pages/quests/QuestDetailPage';
+import QuestFormPage from 'pages/quests/QuestFormPage';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);

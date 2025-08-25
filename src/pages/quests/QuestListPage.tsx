@@ -1,174 +1,218 @@
-import React from 'react';
-import { Link as RouterLink, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
-  Stack,
-  Typography,
   Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Paper,
-  TableContainer,
+  CircularProgress,
+  Typography,
+  Alert,
+  Link,
   Table,
   TableHead,
+  TableBody,
   TableRow,
   TableCell,
-  TableBody,
-  Alert,
-  CircularProgress,
-  ButtonGroup,
+  TablePagination,
 } from '@mui/material';
-import { listQuests } from 'api/quests';
-import { QuestListItem } from 'types/quests';
-import { QuestStatusChip } from 'components/quests/QuestStatusChip';
+import { useNavigate } from 'react-router-dom';
+import { useCookies } from 'react-cookie';
+import { rankToAlpha } from 'utils/questRank';
 
-function usePaging() {
-  const [sp, setSp] = useSearchParams();
-  const from = Number(sp.get('from') || 0);
-  const count = Number(sp.get('count') || 20);
-  const set = (next: { from?: number; count?: number }) => {
-    const n = new URLSearchParams(sp);
-    if (next.from !== undefined) n.set('from', String(next.from));
-    if (next.count !== undefined) n.set('count', String(next.count));
-    setSp(n, { replace: true });
+type QuestItem = {
+  id: string;
+  title: string;
+  rank: number;
+  limitDate: string | null;
+  createdAt: string;
+};
+
+type ListResponse = {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    from: number;
+    count: number;
+    total: number;
+    items: QuestItem[];
+  } | null;
+};
+
+// ページ保持用のCookieキー（アナウンス一覧に合わせたUI/挙動）
+const COOKIE_PAGE = 'qb_quests_page';
+const COOKIE_ROWS = 'qb_quests_rows';
+const COOKIE_OPTS = { path: '/', maxAge: 60 * 60 * 24 * 30 };
+
+export default function QuestListPage() {
+  const navigate = useNavigate();
+
+  // isStaff チェックは不要（誰でも見られるページ）
+  const [cookies, setCookie] = useCookies([COOKIE_PAGE, COOKIE_ROWS]);
+
+  const initialRows = useMemo(() => {
+    const r = Number(cookies[COOKIE_ROWS]);
+    return Number.isFinite(r) && [10, 20, 50, 100].includes(r) ? r : 20;
+  }, [cookies]);
+
+  const initialPage = useMemo(() => {
+    const p = Number(cookies[COOKIE_PAGE]);
+    return Number.isFinite(p) && p >= 0 ? p : 0;
+  }, [cookies]);
+
+  const [rowsPerPage, setRowsPerPage] = useState<number>(initialRows);
+  const [page, setPage] = useState<number>(initialPage);
+  const [total, setTotal] = useState<number>(0);
+  const [items, setItems] = useState<QuestItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>('');
+
+  const loadQuests = useCallback(
+    async (count: number, from: number) => {
+      setLoading(true);
+      setErrorMsg('');
+      try {
+        const qs = new URLSearchParams({
+          from: String(from),
+          count: String(count),
+        }).toString();
+        const res = await fetch(`/quest-board/api/v1/quests?${qs}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
+        const json: ListResponse = await res.json();
+        if (!json.success || !json.data) {
+          throw new Error(json.message || 'Failed to load quests.');
+        }
+        const data = json.data;
+        const mapped: QuestItem[] = (data.items || []).map((it: any) => ({
+          id: it.id ?? it.questId,
+          title: it.title ?? '',
+          rank: it.rank ?? 0,
+          limitDate: it.limitDate ?? null,
+          createdAt: it.createdAt ?? '',
+        }));
+        setItems(mapped);
+        setTotal(data.total);
+
+        // 範囲外ページの場合は補正
+        const maxPage = Math.max(0, Math.ceil(data.total / count) - 1);
+        if (page > maxPage) {
+          setPage(maxPage);
+          setCookie(COOKIE_PAGE, String(maxPage), COOKIE_OPTS);
+        }
+      } catch (e: any) {
+        setErrorMsg(e?.message || '取得に失敗しました。');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, setCookie]
+  );
+
+  useEffect(() => {
+    const from = page * rowsPerPage;
+    void loadQuests(rowsPerPage, from);
+  }, [page, rowsPerPage, loadQuests]);
+
+  const handleChangePage = (_: unknown, newPage: number) => {
+    setPage(newPage);
+    setCookie(COOKIE_PAGE, String(newPage), COOKIE_OPTS);
   };
-  return { from, count, set };
-}
 
-export const QuestListPage: React.FC = () => {
-  const { from, count, set } = usePaging();
-  const [q, setQ] = React.useState('');
-  const [status, setStatus] = React.useState('');
+  const handleChangeRowsPerPage = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const next = parseInt(e.target.value, 10);
+    setRowsPerPage(next);
+    setCookie(COOKIE_ROWS, String(next), COOKIE_OPTS);
+    setPage(0);
+    setCookie(COOKIE_PAGE, '0', COOKIE_OPTS);
+  };
 
-  const { data, isPending, isError, error } = useQuery({
-    queryKey: ['quests', from, count],
-    queryFn: () => listQuests({ from, count }),
-    staleTime: 30_000,
-  });
-
-  const items = React.useMemo(() => {
-    const src = data?.items ?? [];
-    return src.filter((x) => {
-      const okQ = q ? x.title.toLowerCase().includes(q.toLowerCase()) : true;
-      const okS = status ? x.status === status : true;
-      return okQ && okS;
-    });
-  }, [data, q, status]);
+  const formatDateTime = (iso: string | null) => {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleString();
+  };
 
   return (
-    <Box p={2}>
-      <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-        <Typography variant="h5">Quests</Typography>
-        <Box flex={1} />
+    <Box sx={{ p: 2 }}>
+      <Typography variant='h5' sx={{ mb: 2 }}>
+        クエスト一覧
+      </Typography>
+
+      {/* アナウンス一覧ページと同様の操作列（更新 + 追加） */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
         <Button
-          variant="contained"
-          component={RouterLink}
-          to="/quest-board/quests/new"
+          variant='outlined'
+          onClick={() => loadQuests(rowsPerPage, page * rowsPerPage)}
         >
-          New Quest
+          更新
         </Button>
-      </Stack>
+        <Button
+          variant='contained'
+          onClick={() => navigate('/quest-board/quests/new')}
+        >
+          クエスト追加
+        </Button>
+      </Box>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
-        <TextField
-          label="Search title"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          size="small"
-        />
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel id="quest-status-label">Status</InputLabel>
-          <Select
-            labelId="quest-status-label"
-            value={status}
-            label="Status"
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="new_quest">New</MenuItem>
-            <MenuItem value="open">Open</MenuItem>
-            <MenuItem value="in_progress">In progress</MenuItem>
-            <MenuItem value="closed">Closed</MenuItem>
-            <MenuItem value="done">Done</MenuItem>
-          </Select>
-        </FormControl>
-      </Stack>
+      {errorMsg && <Alert severity='error' sx={{ mb: 2 }}>{errorMsg}</Alert>}
 
-      {isPending && (
-        <Stack alignItems="center" py={4}>
-          <CircularProgress />
-        </Stack>
-      )}
-      {isError && (
-        <Alert severity="error">
-          {(error as Error)?.message || 'Failed to load.'}
-        </Alert>
-      )}
-
-      {!isPending && (items?.length ?? 0) === 0 && (
-        <Alert severity="info">No quests.</Alert>
-      )}
-
-      {!!items?.length && (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <React.Fragment>
+          <Table size='small'>
             <TableHead>
               <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Rank</TableCell>
-                <TableCell>Limit</TableCell>
+                <TableCell>タイトル</TableCell>
+                <TableCell>ランク</TableCell>
+                <TableCell>期限</TableCell>
+                <TableCell>作成日時</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {items.map((q: QuestListItem) => (
+              {items.map((q) => (
                 <TableRow key={q.id} hover>
                   <TableCell>
-                    <Button
-                      component={RouterLink}
-                      to={`/quest-board/quests/${q.id}`}
+                    <Link
+                      component='button'
+                      onClick={() => navigate(`/quest-board/quests/${q.id}`)}
+                      underline='hover'
                     >
-                      {q.title}
-                    </Button>
+                      {q.title || '(無題)'}
+                    </Link>
                   </TableCell>
-                  <TableCell>
-                    <QuestStatusChip status={q.status} />
-                  </TableCell>
-                  <TableCell align="right">{q.rank}</TableCell>
-                  <TableCell>
-                    {new Date(q.limitDate).toLocaleString()}
-                  </TableCell>
+                  <TableCell>{rankToAlpha(q.rank)}</TableCell>
+                  <TableCell>{formatDateTime(q.limitDate)}</TableCell>
+                  <TableCell>{formatDateTime(q.createdAt)}</TableCell>
                 </TableRow>
               ))}
+              {items.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4}>
+                    <Typography variant='body2' color='text.secondary'>
+                      クエストは見つかりませんでした。
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
-        </TableContainer>
-      )}
 
-      <Stack direction="row" alignItems="center" spacing={2} mt={2}>
-        <ButtonGroup>
-          <Button
-            onClick={() => set({ from: Math.max(0, from - count) })}
-            disabled={from <= 0}
-          >
-            Prev
-          </Button>
-          <Button
-            onClick={() => set({ from: from + count })}
-            disabled={!!data && from + count >= data.total}
-          >
-            Next
-          </Button>
-        </ButtonGroup>
-        <Typography variant="body2" color="text.secondary">
-          {data ? `${from + 1} - ${from + (items?.length ?? 0)} / ${data.total}`
-            : ''}
-        </Typography>
-      </Stack>
+          <TablePagination
+            rowsPerPageOptions={[10, 20, 50, 100]}
+            component='div'
+            count={total}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </React.Fragment>
+      )}
     </Box>
   );
-};
+}

@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Box,
   Stack,
   Typography,
   TextField,
@@ -13,9 +12,17 @@ import {
   FormControlLabel,
   Button,
   Alert,
-  MenuItem
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  InputAdornment,
+  useMediaQuery
 } from '@mui/material';
-import Grid2 from '@mui/material/Grid2';
+import CloseIcon from '@mui/icons-material/Close';
+import SaveIcon from '@mui/icons-material/Save';
 import Autocomplete from '@mui/material/Autocomplete';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -37,41 +44,34 @@ import {
   addDaysJstIso,
   approxDaysFromNowJstLabel
 } from 'utils/datetime';
+import { useTheme } from '@mui/material/styles';
+import { rankToAlpha, QUEST_RANK_MAP } from 'utils/questRank';
 
 type Mode = 'create' | 'edit';
 type QuestFormValues = z.input<typeof upsertQuestInput>;
 
-const rankOptions = [
-  { label: 'S', value: 100 },
-  { label: 'A', value: 15 },
-  { label: 'B', value: 14 },
-  { label: 'C', value: 13 },
-  { label: 'D', value: 12 },
-  { label: 'E', value: 11 },
-  { label: 'F', value: 10 }
-];
-
+/**
+ * 時の選択肢（0-23）
+ */
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-// DatePicker 用のほぼ不透明背景と枠（透過抑止＋枠表示）
+/**
+ * DatePicker 用の背景・枠（透過抑止 + 枠表示）
+ */
 const PICKER_BG = 'rgba(5, 10, 20, 0.98)';
 const PICKER_BORDER = '1px solid rgba(0, 255, 255, 0.4)';
 
 export const QuestFormPage: React.FC = () => {
   const { questId } = useParams();
   const isValidUuid =
-    !!questId && z.uuid().safeParse(questId).success;
+    !!questId && z.string().uuid().safeParse(questId).success;
   const mode: Mode = isValidUuid ? 'edit' : 'create';
   const nav = useNavigate();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { user } = useUserContext() as any;
-  const roles: string[] = user?.roles || [];
-  const role: string | undefined = user?.role;
-  const isPrivileged =
-    roles.includes('system_admin') ||
-    roles.includes('guild_staff') ||
-    role === 'system_admin' ||
-    role === 'guild_staff';
+  const isStaff = !!user?.guildStaff || user?.systemAdministrator;
 
   const nowIso = React.useMemo(() => nowFloorHourJstIso(), []);
   const weekLaterIso = React.useMemo(
@@ -79,14 +79,16 @@ export const QuestFormPage: React.FC = () => {
     [nowIso]
   );
 
+  // フォーム状態
   const form = useForm<QuestFormValues>({
     resolver: zodResolver(upsertQuestInput),
     defaultValues: {
       questOwnerId: '',
       title: '',
-      rank: 11,
+      rank: 9,
       description: '',
       partyRequired: false,
+      // 変更: 期限はデフォルトで1週間後
       limitDate: weekLaterIso,
       openCallStartDate: nowIso,
       openCallEndDate: weekLaterIso,
@@ -97,16 +99,20 @@ export const QuestFormPage: React.FC = () => {
     }
   });
 
+  const watchRank = form.watch('rank');
+
+  // オーナー選択用ユーザー一覧
   const usersQ = useQuery({
     queryKey: ['users', 'for-owner-select'],
     queryFn: async () => {
       const res = await listUsers({ pageSize: 1000 });
       return res || [];
     },
-    enabled: isPrivileged,
+    enabled: isStaff,
     staleTime: 60 * 1000
   });
 
+  // 初期化（編集時は既存値、作成時は既定値）
   React.useEffect(() => {
     if (isValidUuid && questId) {
       getQuest(questId).then((q) => {
@@ -116,6 +122,7 @@ export const QuestFormPage: React.FC = () => {
           rank: q.rank,
           description: q.description ?? '',
           partyRequired: q.partyRequired,
+          // 変更: 未設定時のフォールバックも1週間後
           limitDate: q.limitDate ?? weekLaterIso,
           openCallStartDate: q.openCallStartDate ?? nowIso,
           openCallEndDate: q.openCallEndDate ?? weekLaterIso,
@@ -129,9 +136,10 @@ export const QuestFormPage: React.FC = () => {
       form.reset({
         questOwnerId: user?.id ?? '',
         title: '',
-        rank: 11,
+        rank: 9,
         description: '',
         partyRequired: false,
+        // 変更: デフォルトで1週間後
         limitDate: weekLaterIso,
         openCallStartDate: nowIso,
         openCallEndDate: weekLaterIso,
@@ -144,27 +152,32 @@ export const QuestFormPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isValidUuid, questId, user?.id, nowIso, weekLaterIso]);
 
+  // 一般ユーザーは owner を固定
   React.useEffect(() => {
-    if (!isPrivileged && user?.id) {
+    if (!isStaff && user?.id) {
       form.setValue('questOwnerId', user.id, { shouldDirty: true });
     }
-  }, [form, isPrivileged, user?.id]);
+  }, [form, isStaff, user?.id]);
 
+  // 作成/更新
   const mut = useMutation({
     mutationFn: async (v: UpsertQuestInputIn) => {
       if (mode === 'create') return createQuest(v);
       return updateQuest(questId!, v);
     },
-    onSuccess: (q) => {
-      nav(`/quest-board/quests/${q.id}`);
+    onSuccess: () => {
+      console.log('Success');
+      nav(`/quest-board/quest/list`);
     }
   });
 
+  // 選択値・エラー
   const err = form.formState.errors;
   const ownerId = form.watch('questOwnerId');
   const userOptions: any[] = (usersQ.data as any[]) ?? [];
   const selectedOwner = userOptions.find((u) => u.id === ownerId) ?? null;
 
+  // 日付値
   const limitIso = form.watch('limitDate') ?? weekLaterIso;
   const startIso = form.watch('openCallStartDate') ?? nowIso;
   const endIso = form.watch('openCallEndDate') ?? weekLaterIso;
@@ -173,6 +186,7 @@ export const QuestFormPage: React.FC = () => {
   const startParts = jstPartsFromIso(startIso);
   const endParts = jstPartsFromIso(endIso);
 
+  // 日付 + 時の変更
   const handleDateHourChange = (
     field: 'limitDate' | 'openCallStartDate' | 'openCallEndDate',
     dateStr: string,
@@ -184,7 +198,7 @@ export const QuestFormPage: React.FC = () => {
 
   const toDayjs = (dateStr: string): Dayjs => dayjs(dateStr, 'YYYY-MM-DD');
 
-  // DatePicker の透過抑止＋枠付け（デスクトップ/モバイル）
+  // DatePicker の透過抑止＋枠（ポータル先含め強制）
   const commonPickerSlotProps = {
     popper: {
       disablePortal: false,
@@ -210,15 +224,37 @@ export const QuestFormPage: React.FC = () => {
     } as any
   } as const;
 
-  // 論理チェック（警告条件）
+  // 相関チェック
   const isEndBeforeStart = dayjs(endIso).isBefore(dayjs(startIso));
   const isEndAfterLimit = dayjs(endIso).isAfter(dayjs(limitIso));
 
+  // ダイアログのクローズ
+  const handleClose = () => {
+    if (!mut.isPending) {
+      nav(-1);
+    }
+  };
+
   return (
-    <Box p={2}>
-      <Typography variant="h5" mb={2}>
+    <Dialog
+      open
+      fullWidth
+      maxWidth="md"
+      fullScreen={fullScreen}
+      onClose={handleClose}
+      aria-labelledby="quest-form-dialog-title"
+    >
+      <DialogTitle id="quest-form-dialog-title" sx={{ pr: 6 }}>
         {mode === 'create' ? 'クエストを新規作成' : 'クエストを編集'}
-      </Typography>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={{ position: 'absolute', right: 8, top: 8 }}
+          disabled={mut.isPending}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
       <LocalizationProvider
         dateAdapter={AdapterDayjs}
@@ -228,9 +264,10 @@ export const QuestFormPage: React.FC = () => {
         }
       >
         <form onSubmit={form.handleSubmit((v) => mut.mutate(v))}>
-          <Grid2 container spacing={2}>
-            <Grid2 size={{ xs: 12, md: 6 }}>
-              {isPrivileged ? (
+          <DialogContent dividers>
+            <Stack spacing={2}>
+              {/* 依頼主 */}
+              {isStaff ? (
                 <Autocomplete
                   options={userOptions}
                   loading={usersQ.isPending}
@@ -266,41 +303,42 @@ export const QuestFormPage: React.FC = () => {
                   helperText="一般ユーザーは変更できません"
                 />
               )}
-            </Grid2>
 
-            <Grid2 size={{ xs: 12, md: 6 }}>
-              <TextField
-                label="タイトル"
-                fullWidth
-                {...form.register('title')}
-                error={!!err.title}
-                helperText={(err.title?.message as string) || ''}
-              />
-            </Grid2>
-
-            <Grid2 size={{ xs: 12, md: 3 }}>
-              <TextField
-                select
-                label="ランク"
-                fullWidth
-                value={form.watch('rank') ?? 11}
-                onChange={(e) =>
-                  form.setValue('rank', Number(e.target.value), {
-                    shouldDirty: true
-                  })
-                }
-                error={!!err.rank}
-                helperText={(err.rank?.message as string) || ''}
+              {/* タイトル + ランク */}
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems={{ sm: 'center' }}
               >
-                {rankOptions.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid2>
+                <TextField
+                  label="タイトル"
+                  fullWidth
+                  {...form.register('title')}
+                  error={!!err.title}
+                  helperText={(err.title?.message as string) || ''}
+                />
 
-            <Grid2 size={{ xs: 12, md: 9 }}>
+                <TextField
+                  label="ランク"
+                  select
+                  value={rankToAlpha(watchRank)}
+                  onChange={(e) =>
+                    form.setValue('rank', Number(e.target.value), {
+                      shouldDirty: true
+                    })
+                  }
+                  sx={{ width: 120 }}
+                >
+                  {Object.keys(QUEST_RANK_MAP).map((r) => (
+                    <MenuItem key={r} value={rankToAlpha(Number(r))}>
+                      {rankToAlpha(Number(r))}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+              </Stack>
+
+              {/* 説明 */}
               <TextField
                 label="説明"
                 fullWidth
@@ -308,271 +346,290 @@ export const QuestFormPage: React.FC = () => {
                 minRows={3}
                 {...form.register('description')}
                 error={!!err.description}
-                helperText={
-                  (err.description?.message as string) || ''
-                }
+                helperText={(err.description?.message as string) || ''}
               />
-            </Grid2>
 
-            {/* クエスト終了期限（カレンダー + 時） */}
-            <Grid2 size={{ xs: 12, md: 6 }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <DatePicker
-                  label="クエスト終了期限"
-                  value={toDayjs(limitParts.date)}
-                  format="YYYY年M月D日"
-                  onChange={(v) => {
-                    const dateStr =
-                      v && v.isValid()
-                        ? v.format('YYYY-MM-DD')
-                        : limitParts.date;
-                    handleDateHourChange(
-                      'limitDate',
-                      dateStr,
-                      limitParts.hour
-                    );
-                  }}
-                  slotProps={{
-                    ...commonPickerSlotProps,
-                    textField: {
-                      error: !!err.limitDate,
-                      helperText:
-                        (err.limitDate?.message as string) || '',
-                      sx: { minWidth: 200 }
-                    }
-                  }}
-                />
-                <TextField
-                  select
-                  label="時"
-                  value={limitParts.hour}
-                  onChange={(e) =>
-                    handleDateHourChange(
-                      'limitDate',
-                      limitParts.date,
-                      Number(e.target.value)
-                    )
-                  }
-                  sx={{ width: 120 }}
-                >
-                  {HOURS.map((h) => (
-                    <MenuItem key={h} value={h}>
-                      {`${h.toString().padStart(2, '0')}時`}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <Typography variant="body2">
-                  {approxDaysFromNowJstLabel(limitIso, '期限経過')}
+              {/* 期限 */}
+              <Stack spacing={1}>
+                <Typography variant="subtitle2">
+                  クエスト終了期限
                 </Typography>
-              </Stack>
-            </Grid2>
-
-            {/* クエスト募集開始日時（カレンダー + 時） */}
-            <Grid2 size={{ xs: 12, md: 3 }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <DatePicker
-                  label="クエスト募集開始日時"
-                  value={toDayjs(startParts.date)}
-                  format="YYYY年M月D日"
-                  onChange={(v) => {
-                    const dateStr =
-                      v && v.isValid()
-                        ? v.format('YYYY-MM-DD')
-                        : startParts.date;
-                    handleDateHourChange(
-                      'openCallStartDate',
-                      dateStr,
-                      startParts.hour
-                    );
-                  }}
-                  slotProps={{
-                    ...commonPickerSlotProps,
-                    textField: {
-                      error: !!err.openCallStartDate,
-                      helperText:
-                        (err.openCallStartDate?.message as string) ||
-                        '',
-                      sx: { minWidth: 200 }
-                    }
-                  }}
-                />
-                <TextField
-                  select
-                  label="時"
-                  value={startParts.hour}
-                  onChange={(e) =>
-                    handleDateHourChange(
-                      'openCallStartDate',
-                      startParts.date,
-                      Number(e.target.value)
-                    )
-                  }
-                  sx={{ width: 120 }}
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1}
+                  alignItems={{ sm: 'center' }}
                 >
-                  {HOURS.map((h) => (
-                    <MenuItem key={h} value={h}>
-                      {`${h.toString().padStart(2, '0')}時`}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <Typography variant="body2">
-                  {approxDaysFromNowJstLabel(startIso, '開始済み')}
-                </Typography>
-              </Stack>
-            </Grid2>
-
-            {/* クエスト募集終了期限（カレンダー + 時） */}
-            <Grid2 size={{ xs: 12, md: 3 }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <DatePicker
-                  label="クエスト募集終了期限"
-                  value={toDayjs(endParts.date)}
-                  format="YYYY年M月D日"
-                  onChange={(v) => {
-                    const dateStr =
-                      v && v.isValid()
-                        ? v.format('YYYY-MM-DD')
-                        : endParts.date;
-                    handleDateHourChange(
-                      'openCallEndDate',
-                      dateStr,
-                      endParts.hour
-                    );
-                  }}
-                  slotProps={{
-                    ...commonPickerSlotProps,
-                    textField: {
-                      error: !!err.openCallEndDate,
-                      helperText:
-                        (err.openCallEndDate?.message as string) || '',
-                      sx: { minWidth: 200 }
+                  <DatePicker
+                    label="日付"
+                    value={toDayjs(limitParts.date)}
+                    format="YYYY年M月D日"
+                    onChange={(v) => {
+                      const dateStr =
+                        v && v.isValid()
+                          ? v.format('YYYY-MM-DD')
+                          : limitParts.date;
+                      handleDateHourChange(
+                        'limitDate',
+                        dateStr,
+                        limitParts.hour
+                      );
+                    }}
+                    slotProps={{
+                      ...commonPickerSlotProps,
+                      textField: {
+                        error: !!err.limitDate,
+                        helperText:
+                          (err.limitDate?.message as string) || '',
+                        sx: { minWidth: 200 }
+                      }
+                    }}
+                  />
+                  <TextField
+                    select
+                    label="時"
+                    value={limitParts.hour}
+                    onChange={(e) =>
+                      handleDateHourChange(
+                        'limitDate',
+                        limitParts.date,
+                        Number(e.target.value)
+                      )
                     }
-                  }}
-                />
-                <TextField
-                  select
-                  label="時"
-                  value={endParts.hour}
-                  onChange={(e) =>
-                    handleDateHourChange(
-                      'openCallEndDate',
-                      endParts.date,
-                      Number(e.target.value)
-                    )
-                  }
-                  sx={{ width: 120 }}
-                >
-                  {HOURS.map((h) => (
-                    <MenuItem key={h} value={h}>
-                      {`${h.toString().padStart(2, '0')}時`}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <Typography variant="body2">
-                  {approxDaysFromNowJstLabel(endIso, '募集終了')}
-                </Typography>
+                    sx={{ width: 120 }}
+                  >
+                    {HOURS.map((h) => (
+                      <MenuItem key={h} value={h}>
+                        {`${h.toString().padStart(2, '0')}時`}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Typography variant="body2">
+                    {approxDaysFromNowJstLabel(limitIso, '期限経過')}
+                  </Typography>
+                </Stack>
               </Stack>
 
-              {(isEndBeforeStart || isEndAfterLimit) && (
-                <Alert severity="warning" sx={{ mt: 1 }}>
-                  {isEndBeforeStart &&
-                    'クエスト募集終了日時は募集開始日時よりも' +
-                      '後に設定してください。'}
-                  {isEndBeforeStart && isEndAfterLimit && <br />}
-                  {isEndAfterLimit &&
-                    'クエスト募集終了日時はクエスト終了期限以前に' +
-                      '設定してください。'}
-                </Alert>
-              )}
-            </Grid2>
+              {/* 募集開始 */}
+              <Stack spacing={1}>
+                <Typography variant="subtitle2">
+                  クエスト募集開始日時
+                </Typography>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1}
+                  alignItems={{ sm: 'center' }}
+                >
+                  <DatePicker
+                    label="日付"
+                    value={toDayjs(startParts.date)}
+                    format="YYYY年M月D日"
+                    onChange={(v) => {
+                      const dateStr =
+                        v && v.isValid()
+                          ? v.format('YYYY-MM-DD')
+                          : startParts.date;
+                      handleDateHourChange(
+                        'openCallStartDate',
+                        dateStr,
+                        startParts.hour
+                      );
+                    }}
+                    slotProps={{
+                      ...commonPickerSlotProps,
+                      textField: {
+                        error: !!err.openCallStartDate,
+                        helperText:
+                          (err.openCallStartDate?.message as string) ||
+                          '',
+                        sx: { minWidth: 200 }
+                      }
+                    }}
+                  />
+                  <TextField
+                    select
+                    label="時"
+                    value={startParts.hour}
+                    onChange={(e) =>
+                      handleDateHourChange(
+                        'openCallStartDate',
+                        startParts.date,
+                        Number(e.target.value)
+                      )
+                    }
+                    sx={{ width: 120 }}
+                  >
+                    {HOURS.map((h) => (
+                      <MenuItem key={h} value={h}>
+                        {`${h.toString().padStart(2, '0')}時`}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Typography variant="body2">
+                    {approxDaysFromNowJstLabel(startIso, '開始済み')}
+                  </Typography>
+                </Stack>
+              </Stack>
 
-            <Grid2 size={{ xs: 12 }}>
+              {/* 募集終了 */}
+              <Stack spacing={1}>
+                <Typography variant="subtitle2">
+                  クエスト募集終了期限
+                </Typography>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1}
+                  alignItems={{ sm: 'center' }}
+                >
+                  <DatePicker
+                    label="日付"
+                    value={toDayjs(endParts.date)}
+                    format="YYYY年M月D日"
+                    onChange={(v) => {
+                      const dateStr =
+                        v && v.isValid()
+                          ? v.format('YYYY-MM-DD')
+                          : endParts.date;
+                      handleDateHourChange(
+                        'openCallEndDate',
+                        dateStr,
+                        endParts.hour
+                      );
+                    }}
+                    slotProps={{
+                      ...commonPickerSlotProps,
+                      textField: {
+                        error: !!err.openCallEndDate,
+                        helperText:
+                          (err.openCallEndDate?.message as string) ||
+                          '',
+                        sx: { minWidth: 200 }
+                      }
+                    }}
+                  />
+                  <TextField
+                    select
+                    label="時"
+                    value={endParts.hour}
+                    onChange={(e) =>
+                      handleDateHourChange(
+                        'openCallEndDate',
+                        endParts.date,
+                        Number(e.target.value)
+                      )
+                    }
+                    sx={{ width: 120 }}
+                  >
+                    {HOURS.map((h) => (
+                      <MenuItem key={h} value={h}>
+                        {`${h.toString().padStart(2, '0')}時`}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Typography variant="body2">
+                    {approxDaysFromNowJstLabel(endIso, '募集終了')}
+                  </Typography>
+                </Stack>
+
+                {(isEndBeforeStart || isEndAfterLimit) && (
+                  <Alert severity="warning" sx={{ mt: 1 }}>
+                    {isEndBeforeStart &&
+                      'クエスト募集終了日時は募集開始日時よりも後に設定してください。'}
+                    {isEndBeforeStart && isEndAfterLimit && <br />}
+                    {isEndAfterLimit &&
+                      'クエスト募集終了日時はクエスト終了期限以前に設定してください。'}
+                  </Alert>
+                )}
+              </Stack>
+
+              {/* パーティ必須 */}
               <FormControlLabel
                 control={<Checkbox {...form.register('partyRequired')} />}
                 label="パーティ必須"
               />
-            </Grid2>
 
-            <Grid2 size={{ xs: 12, md: 4 }}>
-              <TextField
-                label="報酬ポイント"
-                type="number"
-                fullWidth
-                {...form.register('rewordPoint', { valueAsNumber: true })}
-                error={!!err.rewordPoint}
-                helperText={
-                  (err.rewordPoint?.message as string) || ''
-                }
-              />
-            </Grid2>
+              {/* 報酬 */}
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems={{ sm: 'center' }}
+              >
+                <TextField
+                  label="報酬ポイント"
+                  type="number"
+                  fullWidth
+                  {...form.register('rewordPoint', { valueAsNumber: true })}
+                  error={!!err.rewordPoint}
+                  helperText={(err.rewordPoint?.message as string) || ''}
+                />
+                <TextField
+                  label="報酬アイテム（カンマ区切り）"
+                  fullWidth
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    const arr = val
+                      ? val.split(',').map((s) => s.trim())
+                      : [];
+                    form.setValue('rewordItems', arr, { shouldDirty: true });
+                  }}
+                />
+              </Stack>
 
-            <Grid2 size={{ xs: 12, md: 8 }}>
-              <TextField
-                label="報酬アイテム（カンマ区切り）"
-                fullWidth
-                onChange={(e) => {
-                  const val = e.target.value.trim();
-                  const arr = val
-                    ? val.split(',').map((s) => s.trim())
-                    : [];
-                  form.setValue('rewordItems', arr, {
-                    shouldDirty: true
-                  });
-                }}
-              />
-            </Grid2>
+              {/* メディア（縦並びに変更） */}
+              <Stack spacing={1}>
+                <TextField
+                  label="動画URL（カンマ区切り）"
+                  fullWidth
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    const arr = val
+                      ? val.split(',').map((s) => s.trim())
+                      : [];
+                    form.setValue('videos', arr, { shouldDirty: true });
+                  }}
+                />
+                <TextField
+                  label="画像URL（カンマ区切り）"
+                  fullWidth
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    const arr = val
+                      ? val.split(',').map((s) => s.trim())
+                      : [];
+                    form.setValue('photos', arr, { shouldDirty: true });
+                  }}
+                />
+              </Stack>
 
-            <Grid2 size={{ xs: 12, md: 6 }}>
-              <TextField
-                label="動画URL（カンマ区切り）"
-                fullWidth
-                onChange={(e) => {
-                  const val = e.target.value.trim();
-                  const arr = val
-                    ? val.split(',').map((s) => s.trim())
-                    : [];
-                  form.setValue('videos', arr, { shouldDirty: true });
-                }}
-              />
-            </Grid2>
+              {/* 送信エラー */}
+              {mut.isError && (
+                <Alert severity="error">
+                  {(mut.error as Error)?.message || '失敗しました。'}
+                </Alert>
+              )}
+            </Stack>
+          </DialogContent>
 
-            <Grid2 size={{ xs: 12, md: 6 }}>
-              <TextField
-                label="画像URL（カンマ区切り）"
-                fullWidth
-                onChange={(e) => {
-                  const val = e.target.value.trim();
-                  const arr = val
-                    ? val.split(',').map((s) => s.trim())
-                    : [];
-                  form.setValue('photos', arr, { shouldDirty: true });
-                }}
-              />
-            </Grid2>
-          </Grid2>
-
-          <Stack direction="row" spacing={1} mt={3}>
-            <Button type="submit" variant="contained" disabled={mut.isPending}>
-              {mode === 'create' ? '作成' : '更新'}
-            </Button>
+          <DialogActions>
             <Button
-              type="button"
+              onClick={handleClose}
               variant="outlined"
-              onClick={() => nav(-1)}
               disabled={mut.isPending}
+              startIcon={<CloseIcon />}
             >
               キャンセル
             </Button>
-          </Stack>
-
-          {mut.isError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {(mut.error as Error)?.message || '失敗しました。'}
-            </Alert>
-          )}
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={mut.isPending}
+              startIcon={<SaveIcon />}
+            >
+              {mode === 'create' ? '作成' : '更新'}
+            </Button>
+          </DialogActions>
         </form>
       </LocalizationProvider>
-    </Box>
+    </Dialog>
   );
 };
 
