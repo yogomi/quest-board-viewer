@@ -18,12 +18,10 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  InputAdornment,
   useMediaQuery
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SaveIcon from '@mui/icons-material/Save';
-import Autocomplete from '@mui/material/Autocomplete';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { jaJP } from '@mui/x-date-pickers/locales';
@@ -46,6 +44,7 @@ import {
 } from 'utils/datetime';
 import { useTheme } from '@mui/material/styles';
 import { rankToAlpha, QUEST_RANK_MAP } from 'utils/questRank';
+import { UserPublic } from 'types/users';
 
 type Mode = 'create' | 'edit';
 type QuestFormValues = z.input<typeof upsertQuestInput>;
@@ -105,8 +104,8 @@ export const QuestFormPage: React.FC = () => {
   const usersQ = useQuery({
     queryKey: ['users', 'for-owner-select'],
     queryFn: async () => {
-      const res = await listUsers({ pageSize: 1000 });
-      return res || [];
+      const res = await listUsers({ from: 0, count: 1000 });
+      return res.items || [];
     },
     enabled: isStaff,
     staleTime: 60 * 1000
@@ -166,7 +165,6 @@ export const QuestFormPage: React.FC = () => {
       return updateQuest(questId!, v);
     },
     onSuccess: () => {
-      console.log('Success');
       nav(`/quest-board/quest/list`);
     }
   });
@@ -174,8 +172,7 @@ export const QuestFormPage: React.FC = () => {
   // 選択値・エラー
   const err = form.formState.errors;
   const ownerId = form.watch('questOwnerId');
-  const userOptions: any[] = (usersQ.data as any[]) ?? [];
-  const selectedOwner = userOptions.find((u) => u.id === ownerId) ?? null;
+  const users: UserPublic[] = (usersQ.data as UserPublic[]) ?? [];
 
   // 日付値
   const limitIso = form.watch('limitDate') ?? weekLaterIso;
@@ -268,37 +265,30 @@ export const QuestFormPage: React.FC = () => {
             <Stack spacing={2}>
               {/* 依頼主 */}
               {isStaff ? (
-                <Autocomplete
-                  options={userOptions}
-                  loading={usersQ.isPending}
-                  value={selectedOwner}
-                  getOptionLabel={(o) =>
-                    (o ? `${o.name ?? '(名称未設定)'}` : '')
-                  }
-                  onChange={(_, v) => {
-                    form.setValue('questOwnerId', v?.id ?? '', {
+                <TextField
+                  label="依頼主（管理者／スタッフのみ変更可）"
+                  select
+                  placeholder="ユーザーを選択"
+                  value={ownerId}
+                  onChange={(e) => 
+                    form.setValue('questOwnerId', e.target.value, {
                       shouldDirty: true
-                    });
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="依頼主（管理者／スタッフのみ変更可）"
-                      placeholder="ユーザーを選択"
-                      error={!!err.questOwnerId}
-                      helperText={
-                        (err.questOwnerId?.message as string) || ''
-                      }
-                      fullWidth
-                    />
-                  )}
-                />
+                    })
+                  }
+                  fullWidth
+                >
+                  {users.map((u) => (
+                    <MenuItem key={u.id} value={u.id}>
+                      {u.loginId}
+                    </MenuItem>
+                  ))}
+                </TextField>
               ) : (
                 <TextField
                   label="依頼主"
                   placeholder="ログインユーザー"
                   fullWidth
-                  value={user?.name ?? ''}
+                  value={user?.loginId ?? ''}
                   InputProps={{ readOnly: true }}
                   helperText="一般ユーザーは変更できません"
                 />

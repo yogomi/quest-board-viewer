@@ -49,7 +49,7 @@ export default function QuestDetailPage() {
     mutationFn: () => deleteQuestApi(questId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['quests'] });
-      nav('/quest-board/quests');
+      nav('/quest-board/quest/list');
     },
   });
 

@@ -26,8 +26,13 @@ export async function listQuests(
   return apiGet<Paging<QuestListItem>>('/quests', params);
 }
 
+type DataQuest = {
+  quest: Quest;
+}
+
 export async function getQuest(questId: string): Promise<Quest> {
-  return apiGet<Quest>(`/quests/${questId}`);
+  const dataQuest = await apiGet<DataQuest>(`/quests/${questId}`);
+  return dataQuest.quest;
 }
 
 /* 作成/更新スキーマ */
