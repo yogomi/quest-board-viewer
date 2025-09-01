@@ -37,6 +37,9 @@ export type QuestComment = {
   questId: string;
   commentOwnerId: string;
   comment: string | null;
+  commentOwner: {
+    loginId: string;
+  },
   createdAt: string;
   updatedAt: string;
 };

@@ -14,7 +14,6 @@ import {
   Stack,
   Tab,
   Tabs,
-  TextField,
   Typography,
 } from '@mui/material';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
@@ -25,18 +24,21 @@ import {
   getQuest,
   listComments,
   listContractors,
-  rejectContractor,
 } from 'api/quests';
 import { rankToAlpha } from 'utils/questRank';
 import { QuestStatusChip } from 'components/quests/QuestStatusChip';
+import { useUser } from 'hooks/useUser';
+import { Messenger, MessageItem } from 'components/messenger/Messenger';
 
 export default function QuestDetailPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const { questId = '' } = useParams();
+  const { user } = useUser();
 
   const [tab, setTab] = React.useState(0);
-  const [newComment, setNewComment] = React.useState('');
+
+  const loggedInUserId = user?.id;
 
   const { data: quest, isPending, isError, error } = useQuery({
     queryKey: ['quest', questId],
@@ -63,17 +65,6 @@ export default function QuestDetailPage() {
     queryKey: ['quest', questId, 'contractors'],
     queryFn: () => listContractors(questId, 0, 50),
     enabled: !!questId,
-  });
-
-  const add = useMutation({
-    mutationFn: () => addComment(questId, {
-      commentOwnerId: quest?.questOwnerId || '',
-      comment: newComment.trim(),
-    }),
-    onSuccess: () => {
-      setNewComment('');
-      qc.invalidateQueries({ queryKey: ['quest', questId, 'comments'] });
-    },
   });
 
   const doDelete = () => {
@@ -147,40 +138,32 @@ export default function QuestDetailPage() {
       </Tabs>
 
       {tab === 0 && (
-        <Card variant="outlined">
-          <CardContent>
-            <Stack spacing={2}>
-              <Stack direction="row" spacing={1}>
-                <TextField
-                  label="Add a comment"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  size="small"
-                  fullWidth
-                />
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    if (!newComment.trim()) return;
-                    add.mutate();
-                  }}
-                >
-                  Post
-                </Button>
-              </Stack>
-              <List dense>
-                {(comments?.items ?? []).map((c) => (
-                  <ListItem
-                    key={c.id}
-                    secondaryAction={<IconButton edge="end" />}
-                  >
-                    {c.comment}
-                  </ListItem>
-                ))}
-              </List>
-            </Stack>
+        <Card 
+          variant="outlined" 
+          sx={{ 
+            height: 'calc(90vh - 200px)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <CardContent 
+            sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column',
+              p: 2,
+              overflow: 'hidden'
+            }}
+          >
+            <Messenger
+              messages={comments?.items as MessageItem[] || []}
+              currentUserId={loggedInUserId}
+              entityId={questId}
+              addMessageMutation={addComment}
+              queryKey={['quest', questId, 'comments']}
+              importantUserId={quest.questOwnerId}
+            />
           </CardContent>
-          <CardActions />
         </Card>
       )}
 

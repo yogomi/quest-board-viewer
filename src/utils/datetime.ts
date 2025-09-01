@@ -90,3 +90,37 @@ export function approxDaysFromNowJstLabel(iso: string, limitExpiredLabel?: strin
   const days = Math.ceil(diff / DAY_MS);
   return `約${days}日後`;
 }
+
+/**
+ * 日時を相対形式または絶対形式で表示するフォーマッタ
+ * @param date 表示する日時
+ * @returns フォーマット済みの日時文字列
+ */
+export function formatRelativeTime(date: Date | string | number): string {
+  const targetDate = date instanceof Date ? date : new Date(date);
+  const now = new Date();
+  const diffMs = now.getTime() - targetDate.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  // 1分以内
+  if (diffMin < 1) {
+    return 'たった今';
+  }
+  // 1時間以内
+  if (diffHour < 1) {
+    return `${diffMin}分前`;
+  }
+  // 1日以内
+  if (diffDay < 1) {
+    return `${diffHour}時間前`;
+  }
+  // 1週間以内
+  if (diffDay < 7) {
+    return `${diffDay}日前`;
+  }
+  // それ以外は年月日形式
+  return `${targetDate.getFullYear()}年${targetDate.getMonth() + 1}月${targetDate.getDate()}日`;
+}
