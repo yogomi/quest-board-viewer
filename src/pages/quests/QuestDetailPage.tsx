@@ -68,7 +68,7 @@ export default function QuestDetailPage() {
   });
 
   const doDelete = () => {
-    if (confirm('Delete this quest?')) del.mutate();
+    if (confirm('このクエストを削除しますか？')) del.mutate();
   };
 
   if (isPending) {
@@ -81,11 +81,11 @@ export default function QuestDetailPage() {
   if (isError) {
     return (
       <Alert severity="error">
-        {(error as Error)?.message || 'Failed to load.'}
+        {(error as Error)?.message || '読み込みに失敗しました。'}
       </Alert>
     );
   }
-  if (!quest) return <Alert severity="warning">Not found.</Alert>;
+  if (!quest) return <Alert severity="warning">見つかりませんでした。</Alert>;
 
   return (
     <Box p={2}>
@@ -98,33 +98,33 @@ export default function QuestDetailPage() {
           component={RouterLink}
           to={`/quest-board/quests/${quest.id}/edit`}
         >
-          Edit
+          編集
         </Button>
         <Button color="error" variant="contained" onClick={doDelete}>
-          Delete
+          削除
         </Button>
       </Stack>
 
       <Card variant="outlined" sx={{ mb: 2 }}>
         <CardContent>
           <Typography variant="subtitle1" gutterBottom>
-            Overview
+            概要
           </Typography>
           <Stack spacing={1}>
             <Typography>{quest.description}</Typography>
             <Divider />
             <Stack direction="row" spacing={2} flexWrap="wrap">
               <Typography variant="body2">
-                Rank: {rankToAlpha(quest.rank)}
+                ランク: {rankToAlpha(quest.rank)}
               </Typography>
               <Typography variant="body2">
-                Party required: {quest.partyRequired ? 'Yes' : 'No'}
+                パーティ必須: {quest.partyRequired ? 'はい' : 'いいえ'}
               </Typography>
               <Typography variant="body2">
-                Limit: {new Date(quest.limitDate).toLocaleString()}
+                期限: {new Date(quest.limitDate).toLocaleString()}
               </Typography>
               <Typography variant="body2">
-                Reward: {quest.rewordPoint} pt
+                報酬: {quest.rewordPoint} pt
               </Typography>
             </Stack>
           </Stack>
@@ -133,8 +133,8 @@ export default function QuestDetailPage() {
       </Card>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab label="Comments" />
-        <Tab label="Contractors" />
+        <Tab label="コメント" />
+        <Tab label="契約者" />
       </Tabs>
 
       {tab === 0 && (
@@ -171,7 +171,7 @@ export default function QuestDetailPage() {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="subtitle1" gutterBottom>
-              Contractors
+              契約者
             </Typography>
             <List dense>
               {(contractors?.items ?? []).map((x) => (
