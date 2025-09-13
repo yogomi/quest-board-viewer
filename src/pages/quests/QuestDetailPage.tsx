@@ -140,22 +140,22 @@ export default function QuestDetailPage() {
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab label="コメント" />
-        <Tab label="契約者" />
+        <Tab label="応募" />
       </Tabs>
 
       {tab === 0 && (
-        <Card 
-          variant="outlined" 
-          sx={{ 
+        <Card
+          variant="outlined"
+          sx={{
             height: 'calc(90vh - 200px)',
             display: 'flex',
             flexDirection: 'column'
           }}
         >
-          <CardContent 
-            sx={{ 
-              flex: 1, 
-              display: 'flex', 
+          <CardContent
+            sx={{
+              flex: 1,
+              display: 'flex',
               flexDirection: 'column',
               p: 2,
               overflow: 'hidden'
@@ -175,9 +175,9 @@ export default function QuestDetailPage() {
 
       {tab === 1 && (
         <Card variant="outlined">
-          <CardContent>
+          <CardContent> 
             <Typography variant="subtitle1" gutterBottom>
-              契約者
+              応募一覧
             </Typography>
             <List dense>
               {(contractors?.items ?? []).map((x) => (
