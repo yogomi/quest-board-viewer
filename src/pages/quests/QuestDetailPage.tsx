@@ -93,16 +93,6 @@ export default function QuestDetailPage() {
         <Typography variant="h5">{quest.title}</Typography>
         <QuestStatusChip status={quest.status} />
         <Box flex={1} />
-        <Button
-          variant="outlined"
-          component={RouterLink}
-          to={`/quest-board/quests/${quest.id}/edit`}
-        >
-          編集
-        </Button>
-        <Button color="error" variant="contained" onClick={doDelete}>
-          削除
-        </Button>
       </Stack>
 
       <Card variant="outlined" sx={{ mb: 2 }}>
@@ -111,8 +101,13 @@ export default function QuestDetailPage() {
             概要
           </Typography>
           <Stack spacing={1}>
+          </Stack>
+          <Stack spacing={1}>
             <Typography>{quest.description}</Typography>
             <Divider />
+            <Typography>
+              クエストオーナー: {quest.owner.loginId}
+            </Typography>
             <Stack direction="row" spacing={2} flexWrap="wrap">
               <Typography variant="body2">
                 ランク: {rankToAlpha(quest.rank)}
@@ -129,7 +124,18 @@ export default function QuestDetailPage() {
             </Stack>
           </Stack>
         </CardContent>
-        <CardActions />
+        <CardActions>
+          <Button
+            variant="outlined"
+            component={RouterLink}
+            to={`/quest-board/quests/${quest.id}/edit`}
+          >
+            編集
+          </Button>
+          <Button color="error" variant="contained" onClick={doDelete}>
+            削除
+          </Button>
+        </CardActions>
       </Card>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>

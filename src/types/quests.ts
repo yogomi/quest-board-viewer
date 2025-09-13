@@ -12,6 +12,11 @@ export type PlayerUnitType = 'user' | 'party' | 'unit';
 export type QuestListItem = {
   id: string;
   questOwnerId: string;
+  owner: {
+    id: string;
+    loginId: string;
+    nickname?: string | null;
+  }
   title: string;
   rank: number;
   status: QuestStatus | string;
@@ -39,6 +44,7 @@ export type QuestComment = {
   comment: string | null;
   commentOwner: {
     loginId: string;
+    nickname?: string | null;
   },
   createdAt: string;
   updatedAt: string;
