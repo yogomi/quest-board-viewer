@@ -19,5 +19,9 @@ export type UserPublic = {
  */
 export type UserListItem = {
   id: string;
-  name: string;
+  loginId: string;
+  rank: number;
+  guildStaff: boolean;
+  enabked: boolean;
+  nickname?: string;
 };

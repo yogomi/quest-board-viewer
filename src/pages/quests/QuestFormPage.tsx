@@ -289,7 +289,11 @@ export const QuestFormPage: React.FC = () => {
                   placeholder="ログインユーザー"
                   fullWidth
                   value={user?.loginId ?? ''}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
+                  }}
                   helperText="一般ユーザーは変更できません"
                 />
               )}

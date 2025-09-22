@@ -1,5 +1,8 @@
 /* サーバーのレスポンスに合わせた型定義（camelCase） */
 
+import { UserListItem } from './users';
+import { PartyListItem } from './parties';
+
 export type QuestStatus =
   | 'new_quest'
   | 'open'
@@ -7,7 +10,7 @@ export type QuestStatus =
   | 'closed'
   | 'done';
 
-export type PlayerUnitType = 'user' | 'party' | 'unit';
+export type PlayerUnitType = 'user' | 'party';
 
 export type QuestListItem = {
   id: string;
@@ -26,7 +29,7 @@ export type QuestListItem = {
   openCallStartDate?: string | null;
   openCallEndDate?: string | null;
   assignedTargetId?: string | null;
-  assignedTargetType?: PlayerUnitType | string;
+  assignedTargetType?: PlayerUnitType;
   rewordPoint: number;
   rewordItems: string[];
   videos: string[];
@@ -60,7 +63,9 @@ export type QuestContractor = {
   id: string;
   questId: string;
   contractorUnitId: string;
-  contractorUnitType: PlayerUnitType | string;
+  contractorUnitType: PlayerUnitType;
+  userContractor?: UserListItem;
+  partyContractor?: PartyListItem;
   comment: string | null;
   status: ContractorStatus;
   createdAt: string;

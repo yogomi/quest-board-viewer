@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Box,
@@ -9,6 +9,7 @@ import {
   CircularProgress,
   Divider,
   IconButton,
+  Link,
   List,
   ListItem,
   Stack,
@@ -25,16 +26,22 @@ import {
   listComments,
   listContractors,
 } from 'api/quests';
+import { QuestContractor } from 'types/quests';
 import { rankToAlpha } from 'utils/questRank';
 import { QuestStatusChip } from 'components/quests/QuestStatusChip';
 import { useUser } from 'hooks/useUser';
 import { Messenger, MessageItem } from 'components/messenger/Messenger';
+import ApplicationUpsertDialog from 'components/quests/ApplicationUpsertDialog';
 
 export default function QuestDetailPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const { questId = '' } = useParams();
   const { user } = useUser();
+  const [applicationOpen, setApplicationOpen] = useState(false);
+  const [applicationMode, setApplicationMode] = useState<'create' | 'edit'>('create');
+  const [editTargetContractorId, setEditTargetContractorId] =
+                                            useState<string | undefined>(undefined);
 
   const [tab, setTab] = React.useState(0);
 
@@ -86,6 +93,51 @@ export default function QuestDetailPage() {
     );
   }
   if (!quest) return <Alert severity="warning">見つかりませんでした。</Alert>;
+
+  function ContractorItem(contractor: QuestContractor) {
+    if (contractor.contractorUnitType === 'user') {
+      return (
+        <ListItem
+          key={contractor.id}
+          secondaryAction={<IconButton edge="end" />}
+        >
+          <Link
+            onClick={() => setApplication(true, 'edit', contractor.id)}
+          >{contractor.userContractor?.loginId || contractor.contractorUnitId}</Link>
+          - ユーザー
+          - {contractor.userContractor?.rank ? rankToAlpha(contractor.userContractor.rank) : 'N/A'}
+          ランク
+        </ListItem>
+      );
+    }
+    if (contractor.contractorUnitType === 'party') {
+      return (
+        <ListItem
+          key={contractor.id}
+          secondaryAction={<IconButton edge="end" />}
+        >
+          <Link
+            onClick={() => setApplication(true, 'edit', contractor.id)}
+          >{contractor.partyContractor?.partyName || contractor.contractorUnitId}</Link>
+          - パーティー
+        </ListItem>
+      );
+    }
+    return (
+      <ListItem
+        key={contractor.id}
+        secondaryAction={<IconButton edge="end" />}
+      >
+        {contractor.contractorUnitType} - {contractor.contractorUnitId}
+      </ListItem>
+    );
+  }
+
+  function setApplication(open: boolean, mode: 'create' | 'edit', contractorId?: string) {
+    setApplicationMode(mode);
+    setApplicationOpen(open);
+    setEditTargetContractorId(contractorId);
+  }
 
   return (
     <Box p={2}>
@@ -175,24 +227,34 @@ export default function QuestDetailPage() {
 
       {tab === 1 && (
         <Card variant="outlined">
-          <CardContent> 
+          <CardContent>
             <Typography variant="subtitle1" gutterBottom>
               応募一覧
             </Typography>
+            <Button
+              variant="outlined"
+              onClick={() => setApplication(true, 'create')}
+            >
+              応募
+            </Button>
             <List dense>
-              {(contractors?.items ?? []).map((x) => (
-                <ListItem
-                  key={x.id}
-                  secondaryAction={<IconButton edge="end" />}
-                >
-                  {x.contractorUnitType} - {x.contractorUnitId}
-                </ListItem>
-              ))}
+              {(contractors?.items ?? []).map(ContractorItem)}
             </List>
           </CardContent>
           <CardActions />
         </Card>
       )}
+      <ApplicationUpsertDialog
+        open={applicationOpen}
+        mode={applicationMode}
+        questId={questId}
+        contractorId={editTargetContractorId}
+        onClose={() => setApplicationOpen(false)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ['quest', questId, 'contractors'] });
+          setTab(1);
+        }}
+      />
     </Box>
   );
 }

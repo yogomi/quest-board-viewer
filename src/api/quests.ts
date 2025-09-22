@@ -132,10 +132,20 @@ export async function deleteCommentApi(
 /* 請負者 */
 export const upsertContractorInput = z.object({
   contractorUnitId: z.uuid(),
-  contractorUnitType: z.enum(['user', 'party', 'unit']),
+  contractorUnitType: z.enum(['user', 'party']),
   comment: z.string().max(5120).optional().nullable(),
 });
 export type UpsertContractorInput = z.infer<typeof upsertContractorInput>;
+
+export async function getContractor(
+  questId: string,
+  contractorId: string
+): Promise<QuestContractor> {
+  const data = await apiGet<{ contractor: QuestContractor }>(
+    `/quests/${questId}/contractors/${contractorId}`
+  );
+  return data.contractor;
+}
 
 export async function listContractors(
   questId: string,
@@ -171,7 +181,7 @@ export async function updateContractor(
   );
 }
 
-export async function deleteContractorApi(
+export async function deleteContractor(
   questId: string,
   contractorId: string
 ): Promise<{ deleted: boolean }> {
