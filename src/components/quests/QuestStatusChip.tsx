@@ -1,5 +1,6 @@
 import React from 'react';
 import { Chip } from '@mui/material';
+import questStatusToJapanese from 'utils/language/questStatusToJapanese';
 
 type Props = {
   status: string;
@@ -34,6 +35,6 @@ export const QuestStatusChip: React.FC<Props> = ({
   status,
   size = 'small',
 }) => {
-  const label = status.replaceAll('_', ' ');
+  const label = questStatusToJapanese(status);
   return <Chip size={size} color={toColor(status)} label={label} />;
 };

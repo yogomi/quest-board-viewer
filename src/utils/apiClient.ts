@@ -68,6 +68,19 @@ export async function apiPost<T, B = unknown>(
   return handle<T>(res);
 }
 
+export async function apiPut<T, B = unknown>(
+  path: string,
+  body: B
+): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return handle<T>(res);
+}
+
 export async function apiPatch<T, B = unknown>(
   path: string,
   body: B

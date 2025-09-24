@@ -27,11 +27,12 @@ import {
   listContractors,
 } from 'api/quests';
 import { QuestContractor } from 'types/quests';
-import { rankToAlpha } from 'utils/questRank';
+import { rankToAlpha } from 'utils/rank';
 import { QuestStatusChip } from 'components/quests/QuestStatusChip';
 import { useUser } from 'hooks/useUser';
 import { Messenger, MessageItem } from 'components/messenger/Messenger';
 import ApplicationUpsertDialog from 'components/quests/ApplicationUpsertDialog';
+import contractorStatusToJapanese from 'utils/language/contractorStatusToJapanese';
 
 export default function QuestDetailPage() {
   const nav = useNavigate();
@@ -94,6 +95,28 @@ export default function QuestDetailPage() {
   }
   if (!quest) return <Alert severity="warning">見つかりませんでした。</Alert>;
 
+  const isQuestOwner = quest.questOwnerId === loggedInUserId;
+  const isWaitingContractor = [
+                                'new_quest',
+                                'open_call',
+                                'take_quest_requested'
+                              ].includes(quest.status);
+  const assignedContractor = (() => {
+    if (quest.assignedContractorId && quest.assignedContractor) {
+      console.log('aaaaaa');
+      console.log(quest.assignedContractor);
+      if (quest.assignedContractor.contractorUnitType === 'user' &&
+                            quest.assignedContractor.userContractor) {
+        return quest.assignedContractor.userContractor.loginId
+      }
+      if (quest.assignedContractor.contractorUnitType === 'party' &&
+                            quest.assignedContractor.partyContractor) {
+        return quest.assignedContractor.partyContractor?.partyName;
+      }
+    }
+    return "(未定)";
+  })();
+
   function ContractorItem(contractor: QuestContractor) {
     if (contractor.contractorUnitType === 'user') {
       return (
@@ -104,6 +127,7 @@ export default function QuestDetailPage() {
           <Link
             onClick={() => setApplication(true, 'edit', contractor.id)}
           >{contractor.userContractor?.loginId || contractor.contractorUnitId}</Link>
+          - {contractorStatusToJapanese(contractor.status)}
           - ユーザー
           - {contractor.userContractor?.rank ? rankToAlpha(contractor.userContractor.rank) : 'N/A'}
           ランク
@@ -119,6 +143,7 @@ export default function QuestDetailPage() {
           <Link
             onClick={() => setApplication(true, 'edit', contractor.id)}
           >{contractor.partyContractor?.partyName || contractor.contractorUnitId}</Link>
+          - {contractorStatusToJapanese(contractor.status)}
           - パーティー
         </ListItem>
       );
@@ -157,6 +182,9 @@ export default function QuestDetailPage() {
           <Stack spacing={1}>
             <Typography>{quest.description}</Typography>
             <Divider />
+            <Typography>
+              請負者: {assignedContractor}
+            </Typography>
             <Typography>
               クエストオーナー: {quest.owner.loginId}
             </Typography>
@@ -199,7 +227,7 @@ export default function QuestDetailPage() {
         <Card
           variant="outlined"
           sx={{
-            height: 'calc(90vh - 200px)',
+            height: 'calc(80vh - 200px)',
             display: 'flex',
             flexDirection: 'column'
           }}
@@ -231,12 +259,14 @@ export default function QuestDetailPage() {
             <Typography variant="subtitle1" gutterBottom>
               応募一覧
             </Typography>
-            <Button
-              variant="outlined"
-              onClick={() => setApplication(true, 'create')}
-            >
-              応募
-            </Button>
+            {!isQuestOwner && isWaitingContractor && (
+              <Button
+                variant="outlined"
+                onClick={() => setApplication(true, 'create')}
+              >
+                応募
+              </Button>
+            )}
             <List dense>
               {(contractors?.items ?? []).map(ContractorItem)}
             </List>
@@ -249,6 +279,8 @@ export default function QuestDetailPage() {
         mode={applicationMode}
         questId={questId}
         contractorId={editTargetContractorId}
+        isQuestOwner={isQuestOwner}
+        isWaitingContractor={isWaitingContractor}
         onClose={() => setApplicationOpen(false)}
         onSuccess={() => {
           qc.invalidateQueries({ queryKey: ['quest', questId, 'contractors'] });

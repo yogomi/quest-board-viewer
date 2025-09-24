@@ -43,7 +43,7 @@ import {
   approxDaysFromNowJstLabel
 } from 'utils/datetime';
 import { useTheme } from '@mui/material/styles';
-import { rankToAlpha, QUEST_RANK_MAP } from 'utils/questRank';
+import { rankToAlpha, RANK_MAP } from 'utils/rank';
 import { UserPublic } from 'types/users';
 
 type Mode = 'create' | 'edit';
@@ -323,7 +323,7 @@ export const QuestFormPage: React.FC = () => {
                   }
                   sx={{ width: 120 }}
                 >
-                  {Object.keys(QUEST_RANK_MAP).map((r) => (
+                  {Object.keys(RANK_MAP).map((r) => (
                     <MenuItem key={r} value={rankToAlpha(Number(r))}>
                       {rankToAlpha(Number(r))}
                     </MenuItem>

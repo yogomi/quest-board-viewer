@@ -1,6 +1,6 @@
 /* クエスト関連 API 呼び出し。Zod で送信値を検証。 */
 import { z } from 'zod';
-import { apiGet, apiPost, apiPatch, apiDelete } from 'utils/apiClient';
+import { apiGet, apiPost, apiPatch, apiDelete, apiPut } from 'utils/apiClient';
 import {
   Quest,
   QuestListItem,
@@ -194,7 +194,7 @@ export async function acceptContractor(
   questId: string,
   contractorId: string
 ): Promise<QuestContractor> {
-  return apiPost<QuestContractor, {}>(
+  return apiPut<QuestContractor, {}>(
     `/quests/${questId}/contractors/${contractorId}/accept`,
     {}
   );
@@ -204,7 +204,7 @@ export async function rejectContractor(
   questId: string,
   contractorId: string
 ): Promise<QuestContractor> {
-  return apiPost<QuestContractor, {}>(
+  return apiPut<QuestContractor, {}>(
     `/quests/${questId}/contractors/${contractorId}/reject`,
     {}
   );

@@ -14,10 +14,10 @@
  *   サーバ側のスキーマは 0..16 を想定しているため、この割当は範囲内です。
  */
 
-export type QuestRankAlpha = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+export type RankAlpha = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 /* 数値 -> アルファベットの対応辞書（変更時はここを修正） */
-export const QUEST_RANK_MAP: Readonly<Record<number, QuestRankAlpha>> =
+export const RANK_MAP: Readonly<Record<number, RankAlpha>> =
   Object.freeze({
     10: 'F',
     9: 'E',
@@ -33,6 +33,6 @@ export const QUEST_RANK_MAP: Readonly<Record<number, QuestRankAlpha>> =
  * @param rank 数値ランク
  * @returns アルファベット表記（該当なしは 'F'）
  */
-export function rankToAlpha(rank: number): QuestRankAlpha {
-  return QUEST_RANK_MAP[rank] ?? 'F';
+export function rankToAlpha(rank: number): RankAlpha {
+  return RANK_MAP[rank] ?? 'F';
 }

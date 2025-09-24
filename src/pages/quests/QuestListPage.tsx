@@ -15,15 +15,9 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
-import { rankToAlpha } from 'utils/questRank';
-
-type QuestItem = {
-  id: string;
-  title: string;
-  rank: number;
-  limitDate: string | null;
-  createdAt: string;
-};
+import { rankToAlpha } from 'utils/rank';
+import questStatusToJapanese from 'utils/language/questStatusToJapanese';
+import { QuestListItem } from 'types/quests';
 
 type ListResponse = {
   success: boolean;
@@ -33,7 +27,7 @@ type ListResponse = {
     from: number;
     count: number;
     total: number;
-    items: QuestItem[];
+    items: QuestListItem[];
   } | null;
 };
 
@@ -61,7 +55,7 @@ export default function QuestListPage() {
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRows);
   const [page, setPage] = useState<number>(initialPage);
   const [total, setTotal] = useState<number>(0);
-  const [items, setItems] = useState<QuestItem[]>([]);
+  const [items, setItems] = useState<QuestListItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
@@ -84,14 +78,8 @@ export default function QuestListPage() {
           throw new Error(json.message || 'Failed to load quests.');
         }
         const data = json.data;
-        const mapped: QuestItem[] = (data.items || []).map((it: any) => ({
-          id: it.id ?? it.questId,
-          title: it.title ?? '',
-          rank: it.rank ?? 0,
-          limitDate: it.limitDate ?? null,
-          createdAt: it.createdAt ?? '',
-        }));
-        setItems(mapped);
+        const questListItems: QuestListItem[] = data.items || [];
+        setItems(questListItems);
         setTotal(data.total);
 
         // 範囲外ページの場合は補正
@@ -127,6 +115,22 @@ export default function QuestListPage() {
     setCookie(COOKIE_ROWS, String(next), COOKIE_OPTS);
     setPage(0);
     setCookie(COOKIE_PAGE, '0', COOKIE_OPTS);
+  };
+
+  const assignedContractor = (quest: QuestListItem) => {
+    if (quest.assignedContractorId && quest.assignedContractor) {
+      console.log('aaaaaa');
+      console.log(quest.assignedContractor);
+      if (quest.assignedContractor.contractorUnitType === 'user' &&
+                            quest.assignedContractor.userContractor) {
+        return quest.assignedContractor.userContractor.loginId
+      }
+      if (quest.assignedContractor.contractorUnitType === 'party' &&
+                            quest.assignedContractor.partyContractor) {
+        return quest.assignedContractor.partyContractor?.partyName;
+      }
+    }
+    return "(未定)";
   };
 
   const formatDateTime = (iso: string | null) => {
@@ -168,7 +172,11 @@ export default function QuestListPage() {
             <TableHead>
               <TableRow>
                 <TableCell>タイトル</TableCell>
+                <TableCell>依頼者</TableCell>
+                <TableCell>進行状態</TableCell>
+                <TableCell>請負者</TableCell>
                 <TableCell>ランク</TableCell>
+                <TableCell>報酬</TableCell>
                 <TableCell>期限</TableCell>
                 <TableCell>作成日時</TableCell>
               </TableRow>
@@ -185,7 +193,11 @@ export default function QuestListPage() {
                       {q.title || '(無題)'}
                     </Link>
                   </TableCell>
+                  <TableCell>{q.owner.loginId}</TableCell>
+                  <TableCell>{questStatusToJapanese(q.status)}</TableCell>
+                  <TableCell>{assignedContractor(q)}</TableCell>
                   <TableCell>{rankToAlpha(q.rank)}</TableCell>
+                  <TableCell>{q.rewordPoint} pt</TableCell>
                   <TableCell>{formatDateTime(q.limitDate)}</TableCell>
                   <TableCell>{formatDateTime(q.createdAt)}</TableCell>
                 </TableRow>

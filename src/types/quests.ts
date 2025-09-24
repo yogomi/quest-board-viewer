@@ -5,10 +5,14 @@ import { PartyListItem } from './parties';
 
 export type QuestStatus =
   | 'new_quest'
-  | 'open'
-  | 'in_progress'
-  | 'closed'
-  | 'done';
+  | 'open_call'
+  | 'take_quest_requested'
+  | 'doing'
+  | 'done'
+  | 'success'
+  | 'failed'
+  | 'pending'
+  | 'feedback';
 
 export type PlayerUnitType = 'user' | 'party';
 
@@ -25,11 +29,23 @@ export type QuestListItem = {
   status: QuestStatus | string;
   description?: string | null;
   partyRequired: boolean;
+  assignedContractorId?: string | null;
+  assignedContractor?: {
+    id: string;
+    contractorUnitType: string;
+    userContractor?: {
+      id: string;
+      loginId: string;
+      nickname?: string | null;
+    };
+    partyContractor?: {
+      id: string;
+      partyName: string;
+    };
+  } | null;
   limitDate: string;
   openCallStartDate?: string | null;
   openCallEndDate?: string | null;
-  assignedTargetId?: string | null;
-  assignedTargetType?: PlayerUnitType;
   rewordPoint: number;
   rewordItems: string[];
   videos: string[];

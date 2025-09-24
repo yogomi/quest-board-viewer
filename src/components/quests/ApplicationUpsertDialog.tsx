@@ -14,6 +14,8 @@ import {
   getContractor,
   addContractor,
   updateContractor,
+  acceptContractor,
+  rejectContractor,
 } from 'api/quests';
 import { listParties } from 'api/parties';
 import { PartyListItem } from 'types/parties';
@@ -32,6 +34,8 @@ interface ApplicationUpsertDialogProps {
   mode: Mode;
   contractorId?: string;
   questId: string;
+  isQuestOwner: boolean;
+  isWaitingContractor: boolean;
   onClose: () => void;
   onSuccess: (updatedId: string) => void;
 }
@@ -41,6 +45,8 @@ export default function ApplicationUpsertDialog({
   mode,
   contractorId,
   questId,
+  isQuestOwner,
+  isWaitingContractor,
   onClose,
   onSuccess,
 }: ApplicationUpsertDialogProps) {
@@ -57,6 +63,8 @@ export default function ApplicationUpsertDialog({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isContractorOwner, setIsContractorOwner] = useState(false);
+
+  const isGuildStaff = user?.guildStaff || false;
 
   // 初期化
   useEffect(() => {
@@ -172,6 +180,66 @@ export default function ApplicationUpsertDialog({
     }
   };
 
+  function Buttons() {
+    if (mode === 'create') {
+      return (
+        <Button
+          type='submit'
+          form='contractor-upsert-form'
+          variant='contained'
+          disabled={disabled}
+        >
+          {submitting ? '作成中' : '作成'}
+        </Button>
+      );
+    } else if (isContractorOwner && mode === 'edit') {
+      return (
+        <Button
+          type='submit'
+          form='contractor-upsert-form'
+          variant='contained'
+          disabled={disabled}
+        >
+          {submitting ? '更新中' : '更新'}
+        </Button>
+      );
+    } else if (isQuestOwner && (isWaitingContractor || isGuildStaff) && mode === 'edit') {
+      const accept = async () => {
+        try {
+          const quest_contractor = await acceptContractor(questId, contractorId!);
+          onSuccess(quest_contractor.id);
+          onClose();
+        } catch (e) {
+          console.error(e);
+          setErrorMsg('応募の承認に失敗しました。');
+        }
+      }
+
+      const reject = async () => {
+        try {
+          const quest_contractor = await rejectContractor(questId, contractorId!);
+          onSuccess(quest_contractor.id);
+          onClose();
+        } catch (e) {
+          console.error(e);
+          setErrorMsg('応募の拒否に失敗しました。');
+        }
+      }
+
+      return (
+        <React.Fragment>
+          <Button
+            onClick={accept}
+          >承認</Button>
+          <Button
+            onClick={reject}
+          >拒否</Button>
+        </React.Fragment>
+      );
+    }
+    return null;
+  }
+
   return (
     <Dialog open={open} onClose={() => !submitting && onClose()} fullWidth maxWidth="sm">
       <DialogTitle>
@@ -217,26 +285,8 @@ export default function ApplicationUpsertDialog({
         </Box>
       </DialogContent>
       <DialogActions>
+        <Buttons />
         <Button onClick={() => onClose()} disabled={submitting}>閉じる</Button>
-        {mode === 'create' ? (
-          <Button
-            type='submit'
-            form='contractor-upsert-form'
-            variant='contained'
-            disabled={disabled}
-          >
-            {submitting ? '作成中' : '作成'}
-          </Button>
-        ) : isContractorOwner && mode === 'edit' ? (
-          <Button
-            type='submit'
-            form='contractor-upsert-form'
-            variant='contained'
-            disabled={disabled}
-          >
-            {submitting ? '更新中' : '更新'}
-          </Button>
-        ) : null}
       </DialogActions>
     </Dialog>
   );
