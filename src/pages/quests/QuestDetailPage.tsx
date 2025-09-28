@@ -26,7 +26,7 @@ import {
   listComments,
   listContractors,
 } from 'api/quests';
-import { QuestContractor } from 'types/quests';
+import { QuestContractor, QuestListItem } from 'types/quests';
 import { rankToAlpha } from 'utils/rank';
 import { QuestStatusChip } from 'components/quests/QuestStatusChip';
 import { useUser } from 'hooks/useUser';
@@ -103,8 +103,6 @@ export default function QuestDetailPage() {
                               ].includes(quest.status);
   const assignedContractor = (() => {
     if (quest.assignedContractorId && quest.assignedContractor) {
-      console.log('aaaaaa');
-      console.log(quest.assignedContractor);
       if (quest.assignedContractor.contractorUnitType === 'user' &&
                             quest.assignedContractor.userContractor) {
         return quest.assignedContractor.userContractor.loginId
@@ -158,6 +156,27 @@ export default function QuestDetailPage() {
     );
   }
 
+  function QuestEditButtons({quest}: {quest: QuestListItem}) {
+    if (!isQuestOwner) return null;
+    if (!['new_quest', 'open_call', 'take_quest_requested'].includes(quest.status)) {
+      return null;
+    }
+    return (
+      <CardActions>
+        <Button
+          variant="outlined"
+          component={RouterLink}
+          to={`/quest-board/quests/${quest.id}/edit`}
+        >
+          編集
+        </Button>
+        <Button color="error" variant="contained" onClick={doDelete}>
+          削除
+        </Button>
+      </CardActions>
+    );
+  }
+
   function setApplication(open: boolean, mode: 'create' | 'edit', contractorId?: string) {
     setApplicationMode(mode);
     setApplicationOpen(open);
@@ -204,18 +223,9 @@ export default function QuestDetailPage() {
             </Stack>
           </Stack>
         </CardContent>
-        <CardActions>
-          <Button
-            variant="outlined"
-            component={RouterLink}
-            to={`/quest-board/quests/${quest.id}/edit`}
-          >
-            編集
-          </Button>
-          <Button color="error" variant="contained" onClick={doDelete}>
-            削除
-          </Button>
-        </CardActions>
+        <QuestEditButtons
+          quest={quest}
+        />
       </Card>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
