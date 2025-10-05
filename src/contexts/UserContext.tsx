@@ -31,7 +31,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         });
         if (!res.ok) return;
         const json = await res.json();
-        
+
         // Handle both old and new response formats
         if (json.success !== undefined) {
           // New unified format

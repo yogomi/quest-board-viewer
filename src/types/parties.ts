@@ -9,7 +9,7 @@ export type Party = {
   id: string;
   partyName: string;
   description: string | null;
-  ownerId: string;
+  leaderId: string;
   memberCount: number;
   createdAt: string;
   updatedAt: string;

@@ -73,10 +73,26 @@ export async function updateQuest(
   );
 }
 
-export async function deleteQuestApi(questId: string): Promise<{
+export async function deleteQuest(questId: string): Promise<{
   deleted: boolean;
 }> {
   return apiDelete<{ deleted: boolean }>(`/quests/${questId}`);
+}
+
+export async function doneQuest(questId: string): Promise<Quest> {
+  return apiPut<Quest, {}>(`/quests/${questId}/done`, {});
+}
+
+export async function closeQuest(questId: string, success: boolean): Promise<Quest> {
+  return apiPut<Quest, {}>(`/quests/${questId}/close?success=${success}`, {});
+}
+
+export async function feedbackQuest(questId: string): Promise<Quest> {
+  return apiPut<Quest, {}>(`/quests/${questId}/feedback`, {});
+}
+
+export async function restartQuest(questId: string): Promise<Quest> {
+  return apiPut<Quest, {}>(`/quests/${questId}/restart`, {});
 }
 
 /* コメント */

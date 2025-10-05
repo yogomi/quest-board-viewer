@@ -236,6 +236,24 @@ export default function ApplicationUpsertDialog({
           >拒否</Button>
         </React.Fragment>
       );
+    } else if ((isQuestOwner || isGuildStaff) && mode === 'edit') {
+      const reject = async () => {
+        try {
+          const quest_contractor = await rejectContractor(questId, contractorId!);
+          onSuccess(quest_contractor.id);
+          onClose();
+        } catch (e) {
+          console.error(e);
+          setErrorMsg('応募の拒否に失敗しました。');
+        }
+      }
+      return (
+        <React.Fragment>
+          <Button
+            onClick={reject}
+          >拒否</Button>
+        </React.Fragment>
+      );
     }
     return null;
   }

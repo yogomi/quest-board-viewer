@@ -40,6 +40,7 @@ export type QuestListItem = {
     };
     partyContractor?: {
       id: string;
+      leaderId: string;
       partyName: string;
     };
   } | null;

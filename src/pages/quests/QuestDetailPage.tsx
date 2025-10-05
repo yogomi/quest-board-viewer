@@ -21,10 +21,14 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   addComment,
-  deleteQuestApi,
+  deleteQuest,
   getQuest,
   listComments,
   listContractors,
+  doneQuest,
+  closeQuest,
+  feedbackQuest,
+  restartQuest,
 } from 'api/quests';
 import { QuestContractor, QuestListItem } from 'types/quests';
 import { rankToAlpha } from 'utils/rank';
@@ -56,10 +60,38 @@ export default function QuestDetailPage() {
   });
 
   const del = useMutation({
-    mutationFn: () => deleteQuestApi(questId),
+    mutationFn: () => deleteQuest(questId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['quests'] });
       nav('/quest-board/quest/list');
+    },
+  });
+
+  const done = useMutation({
+    mutationFn: () => doneQuest(questId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quest', questId] });
+    },
+  });
+
+  const feedback = useMutation({
+    mutationFn: () => feedbackQuest(questId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quest', questId] });
+    },
+  });
+
+  const closeWithSuccess = useMutation({
+    mutationFn: () => closeQuest(questId, true),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quest', questId] });
+    },
+  });
+
+  const restart = useMutation({
+    mutationFn: () => restartQuest(questId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quest', questId] });
     },
   });
 
@@ -157,30 +189,84 @@ export default function QuestDetailPage() {
   }
 
   function QuestEditButtons({quest}: {quest: QuestListItem}) {
-    if (!isQuestOwner) return null;
-    if (!['new_quest', 'open_call', 'take_quest_requested'].includes(quest.status)) {
-      return null;
+    const isAssignedContractor = (quest.assignedContractor?.userContractor &&
+                            quest.assignedContractor?.userContractor?.id === user?.id) ||
+                      (quest.assignedContractor?.partyContractor &&
+                              quest.assignedContractor?.partyContractor?.leaderId === user?.id);
+    if (isQuestOwner) {
+      if (['new_quest', 'open_call', 'take_quest_requested'].includes(quest.status)) {
+        return (
+          <CardActions>
+            <Button
+              variant="outlined"
+              component={RouterLink}
+              to={`/quest-board/quests/${quest.id}/edit`}
+            >
+              編集
+            </Button>
+            <Button color="error" variant="contained" onClick={doDelete}>
+              削除
+            </Button>
+          </CardActions>
+        );
+      }
+      if (['done'].includes(quest.status) && quest.assignedContractorId) {
+        return (
+          <CardActions>
+            <Button
+              variant="contained"
+              onClick={() => closeWithSuccess.mutate()}
+            >
+              完了確認
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => feedback.mutate()}
+            >
+              フィードバック
+            </Button>
+          </CardActions>
+        );
+      }
+
+      if (quest.status === 'success') {
+        return (
+          <CardActions>
+            <Button
+              variant="contained"
+              onClick={() => restart.mutate()}
+            >
+              完了取り消し
+            </Button>
+          </CardActions>
+        );
+      }
+    } else if (isAssignedContractor) {
+      if (['doing', 'feedback'].includes(quest.status)) {
+        return (
+          <CardActions>
+            <Button
+              variant="contained"
+              onClick={() => done.mutate()}
+            >
+              完了報告
+            </Button>
+          </CardActions>
+        );
+      }
     }
-    return (
-      <CardActions>
-        <Button
-          variant="outlined"
-          component={RouterLink}
-          to={`/quest-board/quests/${quest.id}/edit`}
-        >
-          編集
-        </Button>
-        <Button color="error" variant="contained" onClick={doDelete}>
-          削除
-        </Button>
-      </CardActions>
-    );
+    return null;
   }
 
   function setApplication(open: boolean, mode: 'create' | 'edit', contractorId?: string) {
     setApplicationMode(mode);
     setApplicationOpen(open);
     setEditTargetContractorId(contractorId);
+  }
+
+  function onCloseApplication() {
+    setApplicationOpen(false);
+    qc.invalidateQueries({ queryKey: ['quest', questId] });
   }
 
   return (
@@ -291,7 +377,7 @@ export default function QuestDetailPage() {
         contractorId={editTargetContractorId}
         isQuestOwner={isQuestOwner}
         isWaitingContractor={isWaitingContractor}
-        onClose={() => setApplicationOpen(false)}
+        onClose={() => onCloseApplication()}
         onSuccess={() => {
           qc.invalidateQueries({ queryKey: ['quest', questId, 'contractors'] });
           setTab(1);

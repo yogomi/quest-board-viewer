@@ -119,8 +119,6 @@ export default function QuestListPage() {
 
   const assignedContractor = (quest: QuestListItem) => {
     if (quest.assignedContractorId && quest.assignedContractor) {
-      console.log('aaaaaa');
-      console.log(quest.assignedContractor);
       if (quest.assignedContractor.contractorUnitType === 'user' &&
                             quest.assignedContractor.userContractor) {
         return quest.assignedContractor.userContractor.loginId
