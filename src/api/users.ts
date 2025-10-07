@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { apiGet } from 'utils/apiClient';
 import { UserPublic } from 'types/users';
 import { Paging } from 'types/Paging';
+import { apiPost } from 'utils/apiClient';
 
 
 export const listUsersQuery = z.object({
@@ -18,4 +19,16 @@ export async function listUsers(
     count: q.count ?? 20,
   });
   return apiGet<Paging<UserPublic>>('/users', params);
+}
+
+export const addUserInput = z.object({
+  loginId: z.string().min(1).max(64),
+  newEmail: z.string().email().max(255),
+  passwordCrypted: z.string().min(8).max(1024),
+});
+type AddUserInput = z.infer<typeof addUserInput>;
+
+export async function addUser(input: z.infer<typeof addUserInput>): Promise<{ userId: string }> {
+  const body = addUserInput.parse(input);
+  return apiPost<{ userId: string }, AddUserInput>('/users', body);
 }

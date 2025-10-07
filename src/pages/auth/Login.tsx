@@ -6,12 +6,12 @@ import {
   Container,
   CircularProgress,
   Box,
-  Typography,
   TextField,
-  CardActions,
   Button,
   ButtonGroup,
 } from '@mui/material';
+
+import AddUserDialog from 'components/AddUserDialog';
 
 const containerStyle = css`
   display: flex;
@@ -34,9 +34,10 @@ export default function Login() {
                                   'selectedScopsOwlFunctionIndex'
                                 ]);
   const [csrfToken, setCsrfToken] = useState<string>('');
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState<boolean>(false);
 
   const login = (event: React.FormEvent<HTMLFormElement>) => {
-    
+
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const formJson = Object.fromEntries((formData as any).entries());
@@ -66,7 +67,6 @@ export default function Login() {
     })
       .then(res => res.json())
       .then(response => {
-        console.log(response);
         if (!response.hasOwnProperty('csrfToken')) {
           throw 'Cannot get csrf token.'
         }
@@ -86,8 +86,19 @@ export default function Login() {
           <TextField label="パスワード" name="password" variant="outlined" required />
           <ButtonGroup>
             <Button type="submit">ログイン</Button>
-            <Button type="submit">新規登録</Button>
+            <Button
+              type="button" onClick={() => setIsAddUserDialogOpen(true)}
+            >新規登録</Button>
           </ButtonGroup>
+          <AddUserDialog
+            open={isAddUserDialogOpen}
+            onClose={() => setIsAddUserDialogOpen(false)}
+            onSuccess={(newId: string, newEmail: string) => {
+              setIsAddUserDialogOpen(false);
+              console.log(`New user ID: ${newId}`);
+              alert(`ユーザーを追加しました。\n${newEmail} 宛に招待メールを送信しました。`);
+            }}
+          />
         </Box>
       </Container>
     );

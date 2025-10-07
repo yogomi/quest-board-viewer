@@ -21,6 +21,8 @@ import {
 } from "@mui/material";
 import { useCookies } from 'react-cookie';
 
+import AddUserDialog from 'components/AddUserDialog';
+
 type UserData = {
   id: string,
   loginId: string,
@@ -37,15 +39,8 @@ type UserData = {
   updatedAt: Date,
 }
 
-function AddUserDialog() {
-  const [open, setOpen] = React.useState<boolean>(false);
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  }
+function AddUserButtons() {
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState<boolean>(false);
 
   const handleDownloadUsers = async () => {
     const res = await fetch(`/quest-board/api/v1/user/download-users-data`,
@@ -70,7 +65,7 @@ function AddUserDialog() {
 
   return (
     <React.Fragment>
-      <Button variant="contained" onClick={() => handleClickOpen()}>ユーザーを追加</Button>
+      <Button variant="contained" onClick={() => setIsAddUserDialogOpen(true)}>ユーザーを追加</Button>
       <Button
         variant="contained"
         onClick={() => handleDownloadUsers()}>ユーザー一括ダウンロード</Button>
@@ -78,82 +73,17 @@ function AddUserDialog() {
         variant="contained"
         component={Link}
         to="/quest-board/user/bulk-add-users">ユーザー一括追加</Button>
-      <Dialog
-        open={open}
-        onClose={handleClose}
-        slotProps={{
-          paper: {
-            component: 'form',
-            onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
-              event.preventDefault();
-              const formData = new FormData(event.currentTarget);
-              const formJson = Object.fromEntries((formData as any).entries());
-              const email = formJson.email;
-              console.log(formJson)
 
-              fetch(`/quest-board/api/v1/users`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(formJson),
-              })
-                .then(res => res.json())
-                .then(response => {
-                  console.log(response);
-                  if (response.success) {
-                    handleClose();
-                    // Reload the user list to show the new user
-                    window.location.reload();
-                  } else {
-                    alert(response.message || 'ユーザーの追加に失敗しました。');
-                  }
-                })
-                .catch(() => {
-                  alert('ユーザーの追加に失敗しました。');
-                });
-            }
-          }
+      <AddUserDialog
+        open={isAddUserDialogOpen}
+        onClose={() => setIsAddUserDialogOpen(false)}
+        onSuccess={(newId: string, newEmail: string) => {
+          setIsAddUserDialogOpen(false);
+          console.log(`New user ID: ${newId}`);
+          alert(`ユーザーを追加しました。\n${newEmail} 宛に招待メールを送信しました。`);
         }}
-      >
-        <DialogTitle>ユーザー追加</DialogTitle>
-        <TextField
-          autoFocus
-          required
-          margin="dense"
-          id="name"
-          name="loginId"
-          label="ログインID"
-          type="text"
-          fullWidth
-          variant="standard"
-        ></TextField>
-        <TextField
-          required
-          margin="dense"
-          id="name"
-          name="passwordDigest"
-          label="パスワード"
-          type="password"
-          fullWidth
-          variant="standard"
-        ></TextField>
-        <TextField
-          required
-          margin="dense"
-          id="name"
-          name="newEmail"
-          label="メールアドレス"
-          type="email"
-          fullWidth
-          variant="standard"
-        ></TextField>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type="submit">追加</Button>
-        </DialogActions>
-      </Dialog>
-      
+      />
+
   </ React.Fragment>
   );
 }
@@ -300,7 +230,7 @@ export default function UserSummary() {
           <Button variant="outlined" onClick={() => handleBulkAction('enable')}>一括有効化</Button>
           <Button variant="outlined" onClick={() => handleBulkAction('disable')}>一括無効化</Button>
         </Box>
-        <AddUserDialog />
+        <AddUserButtons />
         <Box sx={{ margin: 1 }}>
           <Table>
             <TableHead>
